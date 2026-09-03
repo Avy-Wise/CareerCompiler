@@ -1,0 +1,29 @@
+{
+  "name": "CareerCompiler",
+  "short_name": "Compiler",
+  "description": "An adaptive career recommender for engineers. Answers questions about how you behave, not what you're good at, and matches you against 80 careers.",
+  "id": "/careercompiler/",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#ded7c9",
+  "theme_color": "#ded7c9",
+  "categories": ["education", "productivity", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {
+      "name": "Start a new assessment",
+      "short_name": "New",
+      "url": "./index.html#new",
+      "icons": [{"src": "icons/icon-192.png", "sizes": "192x192"}]
+    }
+  ]
+}

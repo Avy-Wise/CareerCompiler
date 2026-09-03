@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CareerCompiler — an adaptive career recommender for engineers</title>
+<meta name="description" content="An adaptive career recommender for engineers. 80 careers, 12 traits, questions about how you behave rather than what you're good at.">
+<meta name="theme-color" content="#ded7c9">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png" sizes="64x64">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Compiler">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --panel:#ded7c9; --hi:#fdfaf3; --lo:#aca392;
+  --ink:#2b261d; --ink-soft:#6d6455;
+  --brass:#9c7630; --brass-hi:#c7a25c; --brass-lo:#6f5220;
+  --screen:#16211d; --phos:#4fe0a4; --phos-dim:#2f7f60;
+  --agree:#2f8f68; --disagree:#46587f;
+  --amber:#c98f34; --red:#bc563c;
+  --raise:7px 7px 15px var(--lo), -7px -7px 15px var(--hi);
+  --raise-sm:4px 4px 9px var(--lo), -4px -4px 9px var(--hi);
+  --press:inset 5px 5px 10px var(--lo), inset -5px -5px 10px var(--hi);
+  --press-sm:inset 3px 3px 6px var(--lo), inset -3px -3px 6px var(--hi);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--panel);color:var(--ink);
+  font:400 16px/1.55 "IBM Plex Sans",ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(60px + env(safe-area-inset-bottom));
+  padding-left:calc(16px + env(safe-area-inset-left));
+  padding-right:calc(16px + env(safe-area-inset-right));
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:contain}
+.wrap{max-width:660px;margin:0 auto}
+h1,h2,h3,h4{font-family:"Saira Condensed","Oswald",ui-sans-serif,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.08em}
+[hidden]{display:none!important}
+
+/* ---------- intro ---------- */
+#intro{text-align:center;padding:44px 0 0}
+#intro h1{font-size:clamp(30px,8vw,46px);letter-spacing:.14em;margin:0 0 14px;
+  text-shadow:1px 1px 0 var(--hi),-1px -1px 1px rgba(0,0,0,.2)}
+#intro .lead{max-width:42ch;margin:0 auto 26px;color:var(--ink-soft);font-size:15px}
+#installrow{margin-top:18px}
+.installhint{max-width:34ch;margin:11px auto 0;font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
+.sdgs{display:grid;gap:11px;text-align:left;margin:0 auto 30px;max-width:440px}
+.sdg{padding:15px 17px;border-radius:16px;box-shadow:var(--press);
+  font-size:13.2px;line-height:1.55;color:var(--ink-soft)}
+.sdg .g{display:inline-block;font:600 9.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.14em;
+  color:#fffaf0;background:linear-gradient(145deg,var(--brass-hi),var(--brass));
+  padding:5px 9px;border-radius:999px;margin-right:8px;vertical-align:2px}
+.sdg b{color:var(--ink);font-weight:600}
+.sdg b::after{content:" — "}
+.btn{cursor:pointer;border:0;padding:17px 34px;border-radius:14px;
+  background:linear-gradient(145deg,var(--brass-hi),var(--brass));color:#fffaf0;
+  font:700 14px/1 "Saira Condensed",sans-serif;text-transform:uppercase;letter-spacing:.22em;
+  box-shadow:5px 5px 12px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translateY(2px);
+  box-shadow:inset 4px 4px 9px rgba(0,0,0,.3),inset -2px -2px 6px rgba(255,255,255,.18)}
+.btn.ghost{background:var(--panel);color:var(--ink-soft);box-shadow:var(--raise-sm);
+  padding:13px 22px;letter-spacing:.16em}
+.btn:disabled{opacity:.34;cursor:default}
+
+/* ---------- sticky progress ---------- */
+.topbar{position:sticky;top:0;z-index:30;padding:calc(12px + env(safe-area-inset-top)) 0 10px;margin-bottom:8px;
+  background:linear-gradient(var(--panel) 62%, rgba(222,215,201,0))}
+.topbar .in{display:flex;align-items:center;gap:15px;max-width:660px;margin:0 auto;
+  background:var(--panel);border-radius:999px;padding:11px 22px 11px 18px;
+  box-shadow:6px 6px 13px var(--lo), -5px -5px 12px var(--hi)}
+.track{flex:1;height:10px;border-radius:999px;box-shadow:var(--press-sm);overflow:hidden}
+.track span{display:block;height:100%;border-radius:999px;
+  background:linear-gradient(90deg,var(--brass),var(--brass-hi));transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.pct{font:600 17px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass-lo);min-width:56px;text-align:right}
+.slidelabel{text-align:center;font:600 10.5px/1 "Saira Condensed",sans-serif;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 22px;min-height:13px}
+
+/* ---------- question spotlight ---------- */
+#slide{transition:opacity .2s ease, transform .2s ease}
+#slide.out-left{opacity:0;transform:translateX(-26px)}
+#slide.out-right{opacity:0;transform:translateX(26px)}
+#slide.in-right{opacity:0;transform:translateX(26px);transition:none}
+#slide.in-left{opacity:0;transform:translateX(-26px);transition:none}
+.q{padding:26px 20px 22px;border-radius:20px;margin-bottom:16px;cursor:pointer;
+  opacity:.3;filter:saturate(.35);transition:opacity .35s ease,filter .35s ease,box-shadow .35s ease}
+.q.on{opacity:1;filter:none;box-shadow:var(--press);cursor:default}
+.q.answered{opacity:.5;filter:saturate(.5)}
+.q .num{display:block;text-align:center;font:500 10px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--brass);margin-bottom:13px}
+.q p{text-align:center;font-size:clamp(17px,4.2vw,21px);line-height:1.42;margin:0 auto 22px;
+  font-weight:500;max-width:28ch}
+.scale{display:flex;align-items:center;justify-content:space-between;gap:6px;
+  margin:0 auto 11px;max-width:400px;padding:4px 0}
+.opt{appearance:none;border:2px solid transparent;cursor:pointer;background:var(--panel);
+  border-radius:50%;box-shadow:var(--raise-sm);transition:.14s;flex:0 0 auto;padding:0}
+.opt:hover{transform:scale(1.09)}
+.opt[data-i="0"],.opt[data-i="6"]{width:50px;height:50px}
+.opt[data-i="1"],.opt[data-i="5"]{width:42px;height:42px}
+.opt[data-i="2"],.opt[data-i="4"]{width:35px;height:35px}
+.opt[data-i="3"]{width:29px;height:29px}
+.opt.dis{border-color:var(--disagree)}
+.opt.agr{border-color:var(--agree)}
+.opt.neu{border-color:var(--lo)}
+.opt[aria-pressed=true]{box-shadow:var(--press-sm)}
+.opt.dis[aria-pressed=true]{background:var(--disagree);border-color:var(--disagree)}
+.opt.agr[aria-pressed=true]{background:var(--agree);border-color:var(--agree)}
+.opt.neu[aria-pressed=true]{background:var(--lo);border-color:var(--lo)}
+.poles{display:flex;justify-content:space-between;max-width:400px;margin:0 auto 8px;
+  font:700 10px/1 "Saira Condensed",sans-serif;letter-spacing:.18em;text-transform:uppercase}
+.poles .d{color:var(--disagree)}.poles .a{color:var(--agree)}
+.picked{text-align:center;margin:0;min-height:19px;font:500 13px/1.3 "IBM Plex Sans";color:var(--ink-soft)}
+.picked b{color:var(--ink);font-weight:600}
+.navrow{display:flex;justify-content:center;gap:11px;margin-top:26px}
+
+/* ---------- results ---------- */
+.screen{background:var(--screen);border-radius:22px;padding:28px 22px;
+  box-shadow:var(--press),inset 0 0 34px rgba(0,0,0,.55);margin-bottom:22px}
+.screen .eyebrow{font:400 10px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--phos-dim);
+  letter-spacing:.24em;text-transform:uppercase;margin:0 0 12px}
+.screen h2{font-size:clamp(23px,6.4vw,34px);color:var(--phos);margin:0 0 6px;line-height:1.12;
+  text-shadow:0 0 18px rgba(79,224,164,.32)}
+.screen .sub{font:500 12.5px/1.55 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--phos-dim);margin:0}
+.screen .note{font-size:13.5px;line-height:1.62;color:#b8d4c8;margin:14px 0 0}
+.meter{height:9px;border-radius:999px;background:rgba(79,224,164,.13);margin:16px 0 20px;overflow:hidden}
+.meter span{display:block;height:100%;width:0;border-radius:999px;background:var(--phos);
+  box-shadow:0 0 12px rgba(79,224,164,.6);transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.quirk{border-left:3px solid var(--phos-dim);padding:2px 0 2px 15px;margin:0 0 18px;
+  font-size:14.5px;line-height:1.6;color:#d7ece2;font-style:italic}
+.verdict{border-top:1px solid rgba(79,224,164,.16);padding-top:15px}
+.verdict + .verdict{margin-top:15px}
+.verdict h3{font:600 10px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.2em;margin:0 0 8px;color:var(--phos-dim)}
+.verdict p{margin:0;font-size:14px;line-height:1.62;color:#cfe6dc}
+h2.section{font-size:15px;letter-spacing:.2em;color:var(--ink-soft);margin:34px 0 14px}
+
+.trait{margin-bottom:15px}
+.trait .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.trait .nm{font:700 12px/1 "Saira Condensed",sans-serif;letter-spacing:.13em;text-transform:uppercase}
+.trait .v{font:500 11px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass)}
+.trait .rail{height:8px;border-radius:999px;box-shadow:var(--press-sm);position:relative}
+.trait .rail i{position:absolute;top:-3px;left:50%;width:14px;height:14px;border-radius:50%;
+  background:linear-gradient(145deg,var(--brass-hi),var(--brass-lo));
+  box-shadow:2px 2px 5px var(--lo);transform:translateX(-50%);transition:left .8s cubic-bezier(.2,.8,.2,1)}
+.trait .desc{font-size:12.5px;color:var(--ink-soft);margin:7px 0 0}
+.thin{font-size:11px;color:var(--amber);margin-left:7px}
+
+.card{border-radius:14px;box-shadow:var(--raise);margin-bottom:12px;overflow:hidden}
+.card>summary{list-style:none;cursor:pointer;padding:17px 18px;display:block}
+.card>summary::-webkit-details-marker{display:none}
+.card .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.card .fam{font:400 10.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass);letter-spacing:.13em;text-transform:uppercase}
+.card h3{margin:3px 0 0;font-size:17px;letter-spacing:.06em}
+.card .pctv{font:600 15px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass-lo);flex:0 0 auto}
+.card .blurb{margin:9px 0 0;font-size:13.5px;color:var(--ink-soft)}
+.bar{height:6px;border-radius:999px;box-shadow:var(--press-sm);overflow:hidden;margin:13px 0 11px}
+.bar span{display:block;height:100%;width:0;border-radius:999px;
+  background:linear-gradient(90deg,var(--brass),var(--brass-hi));transition:width .8s ease}
+.lamp{display:inline-flex;align-items:center;gap:6px;font:500 10.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  text-transform:uppercase;letter-spacing:.12em}
+.lamp i{width:9px;height:9px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor}
+.lamp.low{color:#2f8f68}.lamp.medium{color:var(--amber)}.lamp.high{color:var(--red)}
+.card .body{padding:0 18px 18px}
+.card .body h4{font-size:10px;letter-spacing:.2em;color:var(--brass-lo);margin:16px 0 7px}
+.card .body p{margin:0;font-size:14px;line-height:1.62}
+.card .body p.route{color:var(--ink-soft);font-size:13.5px}
+.card .body p.qk{font-style:italic;color:var(--ink-soft);border-left:3px solid var(--lo);padding-left:13px}
+.expand{margin-top:11px;font:600 10.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.card[open] .expand{opacity:.4}
+.avoid{padding:17px 18px;border-radius:14px;box-shadow:var(--press);margin-bottom:11px}
+.avoid h3{margin:0 0 5px;font-size:15px}
+.avoid p{margin:0;font-size:13.5px;color:var(--ink-soft)}
+.caveat{margin-top:32px;padding:19px;border-radius:14px;box-shadow:var(--press);
+  font-size:13.5px;line-height:1.62;color:var(--ink-soft)}
+.caveat b{color:var(--ink)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+
+.conf{display:flex;align-items:center;gap:6px;font:500 10px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap}
+.conf b{font-weight:600;color:var(--agree)}
+.stopnote{text-align:center;font-size:12.5px;color:var(--agree);margin:-14px 0 18px;min-height:16px}
+
+.attrib{padding:18px;border-radius:16px;box-shadow:var(--press)}
+.attrib .lede{margin:0 0 15px;font-size:13px;color:var(--ink-soft)}
+.arow{display:flex;gap:13px;align-items:flex-start;padding:11px 0;border-top:1px solid rgba(140,132,118,.22)}
+.arow:first-of-type{border-top:0;padding-top:0}
+.arow p{margin:0;font-size:14px;line-height:1.45}
+.arow .you{font:500 11.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--brass);display:block;margin-top:6px}
+.ans{flex:0 0 46px;text-align:center;font:600 12px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  padding:7px 0;border-radius:8px;box-shadow:var(--press-sm)}
+.ans.pos{color:var(--agree)}.ans.neg{color:var(--red)}
+
+.mapwrap{padding:14px 12px 4px;border-radius:18px;box-shadow:var(--press)}
+.map{width:100%;height:auto;display:block}
+.map .axis{stroke:var(--lo);stroke-width:1;stroke-dasharray:3 5;opacity:.6}
+.mlab{font:600 10px "Saira Condensed",sans-serif;letter-spacing:.06em;
+  text-transform:uppercase;fill:var(--ink)}
+.mlab.me{fill:#1d6b4f;font-size:11px}
+.cap{font-size:12.2px;line-height:1.55;color:var(--ink-soft);margin:12px 4px 12px}
+.tie{font-size:12.8px;line-height:1.55;color:var(--ink-soft);margin:0 0 14px;
+  padding:12px 14px;border-radius:12px;box-shadow:var(--press-sm)}
+.ciNote{font:500 10.5px/1 "IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;color:var(--ink-soft);margin-left:10px}
+.bar{position:relative}
+.bar .ci{position:absolute;top:0;height:100%;background:var(--brass-lo);opacity:.3;border-radius:999px}
+.trait .rail .band{position:absolute;top:0;height:100%;border-radius:999px;
+  background:var(--brass);opacity:.22;transition:left .8s,width .8s}
+
+:focus-visible{outline:2.5px solid var(--brass-lo);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="topbar" id="topbar" hidden>
+  <div class="in">
+    <div class="track"><span id="bar"></span></div>
+    <span class="pct" id="pctv">0%</span>
+    <span class="conf">conf <b id="conf">0%</b></span>
+  </div>
+</div>
+
+<main class="wrap">
+
+<section id="intro">
+  <h1>CareerCompiler</h1>
+  <p class="lead">Statements about how you actually behave — none of them mention a job. The engine picks each one from your answers so far and stops as soon as it knows enough, usually in around 24 rather than the full 60.</p>
+  <div class="sdgs">
+    <div class="sdg"><span class="g">SDG 4</span><b>Quality education</b>
+      Nothing here asks what you're good at. It asks what you do — then names the skills between you and the job.</div>
+    <div class="sdg"><span class="g">SDG 8</span><b>Decent work</b>
+      Every match arrives with its objection. The aim is work you stay in, not a placement statistic.</div>
+    <div class="sdg"><span class="g">SDG 10</span><b>Reduced inequalities</b>
+      Career counselling is priced out of reach for most students. No login, no fee, no server, works offline.</div>
+  </div>
+
+  <button class="btn" id="start">Begin</button>
+  <div id="installrow" hidden>
+    <button class="btn ghost" id="install">Install on this device</button>
+    <p class="installhint" id="installhint"></p>
+  </div>
+  <p style="margin:20px auto 0;max-width:38ch;font-size:12.5px;color:var(--ink-soft)">First instinct is the right answer. Takes about five minutes. Nothing leaves your browser.</p>
+</section>
+
+<section id="quiz" hidden>
+  <p class="slidelabel" id="slidelabel"></p>
+  <p class="stopnote" id="stopnote"></p>
+  <div id="slide"></div>
+  <div class="navrow">
+    <button class="btn ghost" id="back">Back</button>
+    <button class="btn ghost" id="next">Skip ahead</button>
+  </div>
+</section>
+
+<section id="out" hidden></section>
+</main>
+
+<script>
+const DATA = {"careers": [{"id": "software_dev", "title": "Software Developer", "family": "Software & Computing", "blurb": "Builds and ships application code inside a product team.", "entry": "Portfolio of working projects, then internships or campus placement.", "retrain": "low", "bridge": "The most direct continuation of a technical degree. Your debugging instinct transfers whole.", "friction": "Crowded at entry level. Without shipped projects on a public profile, a degree alone no longer gets interviews.", "quirk": "You will spend more of your career reading other people's code than writing your own, and the good ones make peace with that early.", "traits": {"investigative": [72, 3.0], "realistic": [64, 3.0], "conventional": [66, 1.6], "artistic": [55, 0.6]}, "xy": [-0.2562, -0.0654], "cluster": 2}, {"id": "ml_engineer", "title": "Machine Learning Engineer", "family": "Software & Computing", "blurb": "Trains models and, more importantly, keeps them running in production.", "entry": "Backend or data role, then move sideways once you own a model in production.", "retrain": "medium", "bridge": "Engineering maths — linear algebra, calculus, optimisation — is the real barrier for most entrants, and you already have it.", "friction": "Employers want production experience, not course certificates. Expect to do data or backend work first.", "quirk": "Roughly 80% of the job is cleaning data. The modelling everyone imagines is the last afternoon of a three-week task.", "traits": {"investigative": [78, 3.0], "realistic": [58, 2.0], "conventional": [69, 3.0]}, "xy": [-0.2985, -0.0005], "cluster": 2}, {"id": "data_analyst", "title": "Data Analyst", "family": "Data & Analysis", "blurb": "Turns company data into decisions people actually act on.", "entry": "SQL plus one dashboard tool plus three portfolio analyses on public data.", "retrain": "low", "bridge": "You can already handle the numbers. The differentiator is explaining them to someone who can't.", "friction": "The ceiling comes fast unless you move into data science, product or management.", "quirk": "The highest-value skill isn't SQL — it's telling an executive their favourite theory is wrong, in a way that doesn't get you ignored.", "traits": {"investigative": [75, 3.0], "conventional": [70, 3.0], "social": [72, 0.8], "exposure": [65, 0.8], "enterprising": [81, 1.4]}, "xy": [0.0567, 0.1581], "cluster": 5}, {"id": "data_engineer", "title": "Data Engineer", "family": "Data & Analysis", "blurb": "Builds the pipelines everyone else's analysis depends on.", "entry": "SQL and Python, then one cloud warehouse such as BigQuery, Snowflake or Databricks.", "retrain": "medium", "bridge": "This is plumbing at scale — very close to how process and systems engineering already think.", "friction": "Invisible when it works, blamed when it doesn't. Little public credit.", "quirk": "When you do this job perfectly, nobody knows your name. That's the deal.", "traits": {"investigative": [73, 3.0], "realistic": [57, 2.6], "conventional": [72, 3.0]}, "xy": [-0.2809, 0.0022], "cluster": 2}, {"id": "cybersecurity", "title": "Cybersecurity Analyst", "family": "Software & Computing", "blurb": "Finds the holes before someone else does, and closes them.", "entry": "Networking fundamentals, then a hands-on certification.", "retrain": "medium", "bridge": "Failure-mode thinking — asking how a system breaks — is standard engineering training.", "friction": "On-call and incident work is genuinely stressful. Burnout rates are high.", "quirk": "You get paid to be professionally paranoid, and it does follow you home. Most people in this field have opinions about their own doorbell camera.", "traits": {"conventional": [78, 2.4], "investigative": [70, 3.0], "realistic": [57, 2.8], "tempo": [88, 0.8]}, "xy": [0.0381, 0.3346], "cluster": 0}, {"id": "devops", "title": "Cloud / DevOps Engineer", "family": "Software & Computing", "blurb": "Keeps the infrastructure running and the deployments boring.", "entry": "Linux, one cloud provider, containers, then a CI/CD pipeline you built yourself.", "retrain": "medium", "bridge": "Reliability, redundancy and failure tolerance are the same discipline as designing any physical system.", "friction": "Pager duty. You will be woken up.", "quirk": "There is a specific pride in a deploy so boring nobody noticed it happened.", "traits": {"conventional": [68, 2.4], "investigative": [71, 3.0], "realistic": [59, 3.0], "tempo": [88, 0.8]}, "xy": [0.0647, 0.2903], "cluster": 0}, {"id": "qa_automation", "title": "QA / Test Automation Engineer", "family": "Software & Computing", "blurb": "Writes the tests that stop bad code reaching users.", "entry": "One test framework plus a demonstrable eye for edge cases.", "retrain": "low", "bridge": "Systematic verification is what lab work already trained you in.", "friction": "Often lower status and pay than developers on the same team.", "quirk": "You will find the bug five minutes before a launch, and you will be simultaneously the hero and the most unwelcome person in the room.", "traits": {"investigative": [73, 2.4], "realistic": [57, 2.4], "conventional": [71, 3.0], "tempo": [22, 2.6], "sensitivity": [56, 0.8], "structure": [72, 2.6]}, "xy": [-0.6576, -0.0359], "cluster": 2}, {"id": "game_dev", "title": "Game Developer", "family": "Software & Computing", "blurb": "Builds the systems, physics and feel behind a game.", "entry": "Two finished small games in Unity or Unreal beats any qualification.", "retrain": "medium", "bridge": "Game physics is mechanics and linear algebra. You already did the hard part.", "friction": "Long hours, crunch culture, and pay below equivalent general software roles.", "quirk": "Players will spend 400 hours doing the one thing you built in an afternoon and ignore the feature that took six months.", "traits": {"investigative": [74, 3.0], "realistic": [60, 2.8], "conventional": [60, 1.0], "artistic": [84, 1.8], "sensitivity": [57, 1.8], "exposure": [62, 0.6]}, "xy": [-0.1204, -0.2061], "cluster": 2}, {"id": "embedded", "title": "Embedded Systems Engineer", "family": "Hardware & Electronics", "blurb": "Writes the code that lives inside physical devices.", "entry": "Microcontroller projects you can demonstrate, plus solid C.", "retrain": "low", "bridge": "Direct continuation for electronics graduates. Nothing to unlearn.", "friction": "Smaller job market than web or cloud, concentrated in a few cities and firms.", "quirk": "Your code will still be running in a machine somewhere in fifteen years, and nobody will be able to update it.", "traits": {"investigative": [74, 3.0], "realistic": [71, 3.0], "conventional": [72, 2.4]}, "xy": [-0.2994, -0.0324], "cluster": 2}, {"id": "robotics", "title": "Robotics Engineer", "family": "Hardware & Electronics", "blurb": "Makes machines sense their surroundings and move through them.", "entry": "ROS, control theory, and a robot you actually built.", "retrain": "medium", "bridge": "Sits exactly at the mechanical, electrical and software junction most engineering degrees already touch.", "friction": "Most roles want a master's. Hardware iteration is slow and expensive.", "quirk": "The demo works. The demo always works. The demo in front of the client does not work.", "traits": {"investigative": [73, 3.0], "realistic": [72, 3.0], "conventional": [60, 0.8]}, "xy": [-0.2544, -0.0873], "cluster": 2}, {"id": "hardware_design", "title": "Hardware / PCB Design Engineer", "family": "Hardware & Electronics", "blurb": "Designs the boards inside every product with a chip in it.", "entry": "KiCad or Altium plus boards you have had manufactured and tested.", "retrain": "low", "bridge": "Your circuits coursework is the job description.", "friction": "Design errors cost real money in fabrication. Low tolerance for carelessness.", "quirk": "A single misplaced trace can cost £20,000 and a five-week lead time, which concentrates the mind wonderfully.", "traits": {"realistic": [74, 3.0], "investigative": [73, 3.0], "conventional": [74, 2.8], "artistic": [55, 0.8]}, "xy": [-0.298, -0.0561], "cluster": 2}, {"id": "semiconductor", "title": "Semiconductor / VLSI Engineer", "family": "Hardware & Electronics", "blurb": "Designs and verifies chips at the transistor and register level.", "entry": "Verilog or VHDL, then a specialised master's or a design-house training programme.", "retrain": "medium", "bridge": "Deeply technical, well paid, and the field is short of trained people.", "friction": "Very long verification cycles, and roles cluster in a handful of global locations.", "quirk": "You may spend two years on a chip you never see, that ends up in a device you never use, sold in a country you've never visited.", "traits": {"realistic": [73, 3.0], "investigative": [77, 3.0], "conventional": [73, 2.8], "tempo": [25, 0.8], "sensitivity": [56, 0.8]}, "xy": [-0.5278, -0.2397], "cluster": 2}, {"id": "civil", "title": "Civil / Structural Engineer", "family": "Built Environment", "blurb": "Designs the things that must not fall down.", "entry": "Graduate scheme, then chartership over several years.", "retrain": "low", "bridge": "The default path if you studied civil, with clear licensing routes.", "friction": "Pay lags software substantially, and progression is slow and licence-gated.", "quirk": "Your work has to outlive you, and that changes how carefully you think about everything.", "traits": {"investigative": [80, 1.6], "realistic": [73, 3.0], "artistic": [55, 0.8], "conventional": [75, 3.0], "structure": [62, 0.8], "outdoor": [72, 0.4], "social": [78, 0.6]}, "xy": [-0.2642, 0.2216], "cluster": 1}, {"id": "site_manager", "title": "Construction / Site Manager", "family": "Built Environment", "blurb": "Runs the build — people, sequence, safety, cost.", "entry": "Site engineer first, then progressively larger packages.", "retrain": "low", "bridge": "Technical credibility earns you respect on site that a pure manager has to fight for.", "friction": "Early starts, weather, and constant conflict management. Not a desk job.", "quirk": "You will resolve more disputes about parking than about structural loads.", "traits": {"conventional": [78, 1.0], "structure": [62, 1.0], "enterprising": [76, 1.8], "social": [70, 2.6], "exposure": [70, 1.0], "tempo": [74, 2.4], "sensitivity": [58, 0.8], "outdoor": [92, 0.8], "investigative": [65, 0.8], "realistic": [82, 1.0]}, "xy": [0.1927, 0.3943], "cluster": 0}, {"id": "quantity_surveyor", "title": "Quantity Surveyor", "family": "Built Environment", "blurb": "Controls cost and contracts across a construction project.", "entry": "Conversion diploma or an assistant role, then professional accreditation.", "retrain": "medium", "bridge": "Technical drawings and specifications are already readable to you, which is most of the learning curve.", "friction": "Adversarial. You spend your days arguing about money with people you also need to work with.", "quirk": "Everyone on the project is polite to you and nobody is pleased to see you.", "traits": {"conventional": [74, 3.0], "investigative": [68, 1.6], "enterprising": [78, 2.4], "structure": [62, 0.8], "realistic": [82, 0.8]}, "xy": [-0.2644, 0.0772], "cluster": 2}, {"id": "architect", "title": "Architect", "family": "Built Environment", "blurb": "Designs buildings, balancing what looks right against what stands up.", "entry": "Accredited architecture degree. There is no shortcut around the licensing.", "retrain": "high", "bridge": "You will never fear the structural conversation, which many architects do.", "friction": "A long protected qualification route — years of study and practice, with modest pay until late.", "quirk": "The building you design will be modified by a contractor, a budget and a planning officer before anyone lives in it.", "traits": {"artistic": [79, 3.0], "sensitivity": [58, 2.0], "realistic": [69, 3.0], "conventional": [65, 1.0], "investigative": [62, 1.0], "social": [72, 0.8], "exposure": [65, 0.8]}, "xy": [0.0548, -0.1166], "cluster": 1}, {"id": "urban_planner", "title": "Urban Planner", "family": "Built Environment", "blurb": "Decides how land gets used and how cities grow.", "entry": "Planning master's, or GIS work inside a council or consultancy.", "retrain": "medium", "bridge": "GIS and data modelling are increasingly central, and you can do both.", "friction": "Politically slow. Decisions you make may not be visible for a decade.", "quirk": "You will make a decision in your thirties that people notice in your fifties.", "traits": {"investigative": [78, 1.6], "conventional": [74, 1.8], "structure": [62, 1.0], "social": [75, 1.8], "exposure": [65, 0.8], "enterprising": [82, 0.6], "realistic": [82, 0.8], "artistic": [88, 0.6], "sensitivity": [58, 0.6]}, "xy": [-0.0128, 0.051], "cluster": 1}, {"id": "mech_design", "title": "Mechanical Design Engineer", "family": "Manufacturing & Mechanical", "blurb": "Takes a product from sketch to something a factory can actually make.", "entry": "Strong CAD portfolio plus one manufacturing internship.", "retrain": "low", "bridge": "Design for manufacture is core mechanical coursework.", "friction": "Hardware cycles are slow. You may wait a year to see your part exist.", "quirk": "You will hold the first physical version of something you drew, and it is a genuinely strange feeling.", "traits": {"realistic": [76, 3.0], "artistic": [70, 1.8], "conventional": [74, 1.8], "investigative": [72, 2.4], "sensitivity": [58, 0.8]}, "xy": [-0.27, -0.1374], "cluster": 2}, {"id": "manufacturing", "title": "Manufacturing / Process Engineer", "family": "Manufacturing & Mechanical", "blurb": "Makes production lines faster, cheaper and less wasteful.", "entry": "Graduate scheme at a manufacturer, then lean or six sigma training.", "retrain": "low", "bridge": "Optimisation under constraints is exactly what your degree drilled.", "friction": "Plants are often in industrial towns rather than cities you would choose to live in.", "quirk": "Saving four seconds per unit sounds trivial until you multiply it by two million units.", "traits": {"investigative": [76, 3.0], "conventional": [74, 2.2], "realistic": [85, 1.4], "structure": [62, 0.8]}, "xy": [-0.4104, 0.0555], "cluster": 2}, {"id": "automotive", "title": "Automotive Engineer", "family": "Manufacturing & Mechanical", "blurb": "Designs and tests vehicles and their subsystems.", "entry": "Formula Student, then a manufacturer or tier-one supplier scheme.", "retrain": "low", "bridge": "Direct fit, and the electric transition is actively hiring.", "friction": "Cyclical industry. Layoffs come in waves.", "quirk": "The car you work on now goes on sale after you have already stopped caring about it.", "traits": {"realistic": [72, 3.0], "investigative": [72, 3.0], "artistic": [55, 0.8], "conventional": [75, 1.6]}, "xy": [-0.2941, -0.0492], "cluster": 2}, {"id": "aerospace", "title": "Aerospace Engineer", "family": "Manufacturing & Mechanical", "blurb": "Designs aircraft, spacecraft or their components.", "entry": "Aerospace master's or a graduate scheme at a manufacturer.", "retrain": "medium", "bridge": "Fluids and thermodynamics are the entry price, and you have paid it.", "friction": "Security clearance and citizenship restrictions block many roles in many countries.", "quirk": "Everything is over-engineered by design, and you will never be asked to cut a safety factor to save money.", "traits": {"investigative": [81, 3.0], "realistic": [69, 3.0], "artistic": [55, 0.8], "conventional": [76, 1.8]}, "xy": [-0.3429, -0.0147], "cluster": 2}, {"id": "energy", "title": "Renewable Energy Engineer", "family": "Energy & Environment", "blurb": "Designs and commissions solar, wind or storage installations.", "entry": "Graduate role at a developer or engineering contractor.", "retrain": "low", "bridge": "Electrical and mechanical fundamentals apply directly, and the sector is expanding fast.", "friction": "Project work means site travel and an unstable base location.", "quirk": "You can point at a field of turbines and say which ones you sized. Very few jobs let you do that.", "traits": {"realistic": [67, 2.2], "investigative": [74, 2.8], "conventional": [75, 1.4], "structure": [62, 0.8], "outdoor": [90, 1.4], "social": [78, 0.8]}, "xy": [-0.2311, 0.2548], "cluster": 1}, {"id": "env_consultant", "title": "Environmental Consultant", "family": "Energy & Environment", "blurb": "Assesses environmental impact and gets projects through approval.", "entry": "Environmental science conversion or a graduate consultancy role.", "retrain": "medium", "bridge": "You can read the engineering drawings the ecologists can't.", "friction": "Report-heavy. A lot of writing, and less fieldwork than the title suggests.", "quirk": "Your report can stop a £200 million development, which makes you unusually powerful for someone at a desk.", "traits": {"investigative": [75, 2.8], "artistic": [70, 0.8], "sensitivity": [58, 0.8], "conventional": [78, 1.4], "outdoor": [90, 1.6], "social": [78, 0.8]}, "xy": [-0.1202, 0.1079], "cluster": 1}, {"id": "water_engineer", "title": "Water / Wastewater Engineer", "family": "Energy & Environment", "blurb": "Designs the systems that deliver clean water and take dirty water away.", "entry": "Utility graduate scheme or a water consultancy.", "retrain": "low", "bridge": "Fluid mechanics is the whole discipline. Stable, essential, recession-resistant work.", "friction": "Utility pay scales are rigid and progression is slow.", "quirk": "Nobody thinks about your work until it fails, at which point everybody thinks about it at once.", "traits": {"investigative": [80, 2.2], "realistic": [68, 2.2], "conventional": [76, 2.0], "structure": [62, 0.8], "social": [78, 1.0], "outdoor": [78, 0.8]}, "xy": [-0.2682, 0.2642], "cluster": 1}, {"id": "marine_engineer", "title": "Marine Engineer", "family": "Energy & Environment", "blurb": "Keeps ships and offshore platforms running.", "entry": "Marine engineering certification and a cadetship.", "retrain": "medium", "bridge": "Machinery and thermodynamics transfer directly, and pay at sea is strong.", "friction": "Months away from home. Genuinely hard on relationships.", "quirk": "You will develop opinions about coffee, sleep and email latency that landbound people find incomprehensible.", "traits": {"realistic": [76, 3.0], "investigative": [72, 1.8], "tempo": [76, 1.6], "outdoor": [68, 2.8], "structure": [55, 2.6], "risk_appetite": [45, 2.6], "exposure": [30, 2.6]}, "xy": [-0.1836, 0.1498], "cluster": 0}, {"id": "finance_analyst", "title": "Financial Analyst", "family": "Business & Finance", "blurb": "Values companies and assets and recommends what to do with them.", "entry": "CFA level 1 or an MBA, plus modelling skill you can demonstrate.", "retrain": "medium", "bridge": "Banks actively recruit engineers for quantitative comfort. This is a well-worn path.", "friction": "Long hours in the first years, and finance culture will not suit everyone.", "quirk": "You will build a model that decides something enormous, and it will live in a spreadsheet with a tab called 'FINAL_v7'.", "traits": {"conventional": [74, 3.0], "investigative": [72, 1.8], "social": [72, 0.8], "exposure": [65, 0.8], "tempo": [88, 0.8], "enterprising": [77, 2.0]}, "xy": [0.3682, 0.4774], "cluster": 5}, {"id": "quant", "title": "Quantitative Analyst", "family": "Business & Finance", "blurb": "Builds the mathematical models that price and trade instruments.", "entry": "Advanced degree, competitive programming, then a trading firm.", "retrain": "medium", "bridge": "One of the highest-paid destinations for strong engineering maths — firms prefer physics and engineering graduates over finance ones.", "friction": "Brutally selective, and usually requires a master's or PhD in a quantitative field.", "quirk": "The maths is genuinely hard, the pay is genuinely large, and the interview will ask you how many golf balls fit in a bus.", "traits": {"investigative": [79, 3.0], "conventional": [68, 3.0], "realistic": [55, 1.0], "tempo": [70, 2.6], "enterprising": [72, 1.0], "exposure": [28, 2.6], "structure": [55, 2.6]}, "xy": [-0.2345, 0.2411], "cluster": 2}, {"id": "bank_manager", "title": "Bank / Branch Manager", "family": "Business & Finance", "blurb": "Runs a branch — its targets, its staff and its risk.", "entry": "Bank graduate scheme or officer role, then internal promotion over several years.", "retrain": "medium", "bridge": "Analytical training helps with credit and risk decisions, and bank graduate schemes are open to any discipline.", "friction": "It is a sales and people-management job, not an analytical one. Branch networks are also shrinking.", "quirk": "You will know more about your regulars' lives than their own families do.", "traits": {"enterprising": [77, 3.0], "social": [72, 3.0], "exposure": [68, 1.8], "tempo": [65, 1.6], "sensitivity": [58, 1.6], "conventional": [70, 3.0], "investigative": [70, 0.8], "structure": [62, 0.8]}, "xy": [0.1447, 0.3687], "cluster": 5}, {"id": "management_consultant", "title": "Management Consultant", "family": "Business & Finance", "blurb": "Gets paid to diagnose other companies' problems.", "entry": "Campus recruitment or an MBA. Case practice is mandatory.", "retrain": "medium", "bridge": "Structured problem breakdown is what case interviews test, and it is what engineering teaches.", "friction": "Constant travel and long hours. Most people leave within three years.", "quirk": "You will become a temporary expert in an industry you'd never heard of, four times a year, for the rest of your twenties.", "traits": {"investigative": [75, 2.4], "social": [78, 1.8], "exposure": [78, 2.6], "conventional": [72, 1.4], "enterprising": [83, 1.8], "outdoor": [62, 0.8], "structure": [30, 2.6], "risk_appetite": [55, 0.8], "tempo": [80, 2.6]}, "xy": [0.5848, 0.246], "cluster": 5}, {"id": "product_manager", "title": "Product Manager", "family": "Business & Finance", "blurb": "Decides what gets built, and defends why.", "entry": "Usually a sideways move after two or three years in engineering or analytics.", "retrain": "medium", "bridge": "Technical credibility with engineers is the hardest part of the job for non-engineers, and you start with it.", "friction": "All responsibility, no direct authority. You persuade for a living.", "quirk": "You have no authority over anyone and are responsible for everything. People either love this or leave within a year.", "traits": {"social": [74, 2.6], "exposure": [75, 2.6], "enterprising": [81, 3.0], "conventional": [69, 2.4], "structure": [38, 2.6], "investigative": [73, 1.4], "realistic": [60, 0.8], "tempo": [72, 2.6]}, "xy": [0.4093, 0.204], "cluster": 5}, {"id": "supply_chain", "title": "Supply Chain / Logistics Manager", "family": "Business & Finance", "blurb": "Moves goods from where they are made to where they are needed.", "entry": "Operations graduate scheme, then a supply chain certification.", "retrain": "low", "bridge": "Optimisation, queueing and constraint problems are all standard engineering material.", "friction": "You are judged on things outside your control: weather, ports, strikes.", "quirk": "A ship gets stuck sideways somewhere and your entire quarter changes.", "traits": {"conventional": [74, 2.6], "structure": [62, 1.0], "investigative": [76, 2.4], "enterprising": [82, 1.6], "tempo": [88, 0.6]}, "xy": [0.0602, 0.5015], "cluster": 5}, {"id": "technical_sales", "title": "Technical Sales Engineer", "family": "Business & Finance", "blurb": "Sells complex products to customers who ask hard questions.", "entry": "Application engineer role first, then move toward the commercial side.", "retrain": "low", "bridge": "You can answer the technical objection on the spot. Pure salespeople cannot.", "friction": "Commission means variable income, and you carry a target every quarter.", "quirk": "You will out-argue an engineer on their own product, and it is more satisfying than it should be.", "traits": {"enterprising": [84, 3.0], "exposure": [70, 2.8], "risk_appetite": [59, 1.8], "social": [78, 2.0], "conventional": [60, 0.8], "outdoor": [62, 0.8], "structure": [30, 0.8], "investigative": [72, 0.8], "realistic": [60, 0.8]}, "xy": [0.337, -0.1041], "cluster": 5}, {"id": "entrepreneur", "title": "Founder / Small Business Owner", "family": "Business & Finance", "blurb": "Builds a business, usually badly at first.", "entry": "Start small alongside a job. Do not quit before something works.", "retrain": "medium", "bridge": "You can build the first version yourself instead of paying someone to.", "friction": "No salary, no safety net, and most attempts fail. Only viable with runway or a partner earning.", "quirk": "The first version of your business will not be the one that works, and the pivot is normal rather than a failure.", "traits": {"structure": [12, 2.6], "enterprising": [79, 3.0], "risk_appetite": [92, 2.6], "conventional": [60, 1.0], "tempo": [78, 2.6], "artistic": [58, 0.8], "exposure": [72, 1.6], "social": [65, 0.8], "realistic": [82, 0.8]}, "xy": [0.825, -0.4053], "cluster": 4}, {"id": "patent_attorney", "title": "Patent Attorney", "family": "Law & Public Service", "blurb": "Drafts and defends patents on technical inventions.", "entry": "Trainee position at a patent firm, then professional qualification exams.", "retrain": "high", "bridge": "A technical degree is a hard requirement for this profession — most law graduates cannot enter it at all.", "friction": "Years of exams while working full time, and the writing is dense and unglamorous.", "quirk": "You get paid to describe an invention so precisely that nobody can build around your description. It's engineering done in sentences.", "traits": {"artistic": [70, 1.0], "investigative": [70, 3.0], "sensitivity": [57, 1.8], "conventional": [76, 2.8], "social": [72, 0.8], "exposure": [65, 0.8], "tempo": [25, 0.8], "realistic": [60, 1.0]}, "xy": [-0.2407, -0.1945], "cluster": 1}, {"id": "forensic", "title": "Forensic / Failure Analyst", "family": "Law & Public Service", "blurb": "Works out why something broke, sometimes for a court.", "entry": "Materials or mechanical specialism, then a forensic consultancy.", "retrain": "medium", "bridge": "Root-cause analysis is engineering method applied after the fact.", "friction": "Expert-witness work means being cross-examined by people paid to discredit you.", "quirk": "You get handed the wreckage and asked what happened. It is detective work with a materials lab attached.", "traits": {"investigative": [75, 3.0], "conventional": [81, 2.4], "realistic": [65, 0.8], "artistic": [70, 0.8], "sensitivity": [58, 0.8], "exposure": [48, 2.6], "tempo": [30, 2.6]}, "xy": [-0.4835, -0.2379], "cluster": 2}, {"id": "civil_service", "title": "Civil Servant / Policy Adviser", "family": "Law & Public Service", "blurb": "Turns political intent into workable rules.", "entry": "Fast-stream or graduate scheme, open to any discipline.", "retrain": "medium", "bridge": "Technical departments — energy, transport, digital — are short of people who understand what they regulate.", "friction": "Slow and bureaucratic, and your best work may be shelved by a change of minister.", "quirk": "You will write something careful and correct, and a minister will change it in a sentence. Then the next minister may change it back.", "traits": {"artistic": [70, 1.0], "investigative": [69, 2.6], "sensitivity": [57, 2.0], "social": [75, 1.8], "exposure": [65, 0.8], "conventional": [72, 2.6], "structure": [78, 2.6], "tempo": [20, 2.6], "risk_appetite": [15, 2.6]}, "xy": [-0.5307, 0.2003], "cluster": 1}, {"id": "teacher", "title": "Teacher (STEM)", "family": "Education", "blurb": "Teaches maths, physics or computing to school students.", "entry": "Teaching qualification, often funded for shortage subjects.", "retrain": "medium", "bridge": "STEM subject shortages mean engineering graduates are actively wanted, often with training bursaries attached.", "friction": "Workload is heavy and pay plateaus early. Classroom management is the real job.", "quirk": "One student, years later, will tell you that you changed something. It is usually not the student you expected.", "traits": {"social": [79, 3.0], "exposure": [78, 2.6], "sensitivity": [68, 2.6], "tempo": [72, 2.6], "conventional": [69, 1.8], "structure": [70, 2.6], "enterprising": [68, 0.8], "investigative": [85, 0.8]}, "xy": [0.1582, 0.5465], "cluster": 5}, {"id": "lecturer", "title": "University Lecturer / Researcher", "family": "Education", "blurb": "Teaches and publishes inside a university department.", "entry": "PhD, publications, then the academic job market.", "retrain": "high", "bridge": "Direct continuation if you enjoyed final-year research.", "friction": "PhD plus years of insecure postdoc contracts. Permanent posts are scarce.", "quirk": "You will become one of perhaps forty people on earth who deeply understands your specific thing.", "traits": {"investigative": [77, 3.0], "artistic": [70, 1.0], "sensitivity": [58, 2.8], "social": [88, 1.6], "exposure": [62, 2.6], "structure": [25, 2.6], "enterprising": [65, 1.0], "risk_appetite": [60, 2.6], "tempo": [25, 1.0], "conventional": [62, 1.0]}, "xy": [0.0973, -0.3954], "cluster": 3}, {"id": "corporate_trainer", "title": "Technical Trainer", "family": "Education", "blurb": "Teaches working professionals how to use complex tools and systems.", "entry": "Move into training from a hands-on role at the same company.", "retrain": "low", "bridge": "You can teach the technical content because you have used it in anger.", "friction": "Repetitive — you deliver the same material many times over.", "quirk": "You will deliver the same session for the ninetieth time and it will be brand new to everyone in the room.", "traits": {"social": [83, 3.0], "exposure": [65, 2.0], "sensitivity": [59, 1.6], "artistic": [64, 1.2], "investigative": [67, 1.4], "tempo": [78, 0.6], "structure": [28, 1.2], "outdoor": [62, 0.6], "risk_appetite": [55, 0.6], "realistic": [60, 0.8]}, "xy": [0.5325, -0.0157], "cluster": 0}, {"id": "tech_writer", "title": "Technical Writer", "family": "Creative & Media", "blurb": "Writes the documentation engineers actually read.", "entry": "Write documentation for an open-source project and use it as a portfolio.", "retrain": "low", "bridge": "Understanding the product is most of the job. Writing is the trainable half.", "friction": "Often treated as support rather than core, with pay to match.", "quirk": "You are the first person who ever tried to use the product by reading the instructions, which means you find everything broken.", "traits": {"artistic": [72, 1.6], "investigative": [71, 2.6], "sensitivity": [57, 1.6], "social": [42, 2.6], "exposure": [22, 2.6], "conventional": [85, 0.8], "realistic": [60, 0.8], "tempo": [25, 2.6]}, "xy": [-0.7358, -0.3078], "cluster": 2}, {"id": "science_journalist", "title": "Science / Tech Journalist", "family": "Creative & Media", "blurb": "Explains technical stories to a general audience.", "entry": "Build a body of published writing — a blog or newsletter — first.", "retrain": "medium", "bridge": "You can read the paper rather than the press release. Most reporters cannot.", "friction": "The industry is shrinking, and freelance income is unstable.", "quirk": "You get to phone up world experts and ask them to explain their life's work slowly. Almost nobody refuses.", "traits": {"artistic": [75, 3.0], "investigative": [76, 2.8], "sensitivity": [59, 3.0], "social": [65, 1.8], "exposure": [62, 2.8], "structure": [20, 0.8], "enterprising": [65, 0.8], "risk_appetite": [65, 0.8]}, "xy": [0.2853, -0.4376], "cluster": 3}, {"id": "ux_designer", "title": "UX Designer", "family": "Creative & Media", "blurb": "Works out what people need, then makes the product behave that way.", "entry": "Three case studies showing research, iteration and outcome.", "retrain": "medium", "bridge": "Systematic thinking plus the ability to talk to developers is a strong combination here.", "friction": "Portfolio-driven hiring. Your degree counts for very little.", "quirk": "Watching one real person fail to use your design teaches you more than six months of opinions in meetings.", "traits": {"artistic": [88, 1.8], "sensitivity": [67, 2.8], "social": [81, 2.6], "investigative": [78, 2.2], "exposure": [65, 0.8], "realistic": [60, 0.6]}, "xy": [0.096, -0.1226], "cluster": 1}, {"id": "industrial_designer", "title": "Industrial Designer", "family": "Creative & Media", "blurb": "Designs how physical products look, feel and are held.", "entry": "Portfolio of product concepts with sketches, models and rationale.", "retrain": "medium", "bridge": "You know what can actually be manufactured, which many design graduates learn far too late.", "friction": "Drawing and form-giving skill takes years to build and cannot be shortcut.", "quirk": "You will see a stranger holding something you shaped, and they will have no idea anybody decided that curve.", "traits": {"artistic": [78, 3.0], "sensitivity": [58, 2.0], "realistic": [70, 3.0], "conventional": [65, 1.0], "investigative": [68, 1.6]}, "xy": [-0.2035, -0.2035], "cluster": 2}, {"id": "animator", "title": "3D Artist / Animator", "family": "Creative & Media", "blurb": "Builds and animates the models used in film, games and advertising.", "entry": "Showreel. Nothing else gets looked at.", "retrain": "high", "bridge": "3D spatial reasoning and CAD experience shorten the software learning curve considerably.", "friction": "Artistic skill is the bottleneck, not technical skill. Work is project-based and insecure.", "quirk": "Twelve seconds of finished work can be three weeks of your life. Everyone in the field accepts this.", "traits": {"artistic": [80, 3.0], "sensitivity": [57, 3.0], "realistic": [68, 2.6], "investigative": [62, 1.0], "tempo": [25, 1.0], "conventional": [63, 1.4], "exposure": [62, 1.0]}, "xy": [-0.291, -0.4345], "cluster": 2}, {"id": "photographer", "title": "Photographer", "family": "Creative & Media", "blurb": "Shoots commercially — weddings, products, editorial or events.", "entry": "Second-shoot for established photographers while building a portfolio.", "retrain": "high", "bridge": "Optics and light are familiar territory, so the gear side will never intimidate you.", "friction": "Business skill, not artistic skill, decides who survives. Income is seasonal and client-dependent.", "quirk": "The technical side takes a year. The business side takes five, and it's the one that decides who is still doing it at forty.", "traits": {"artistic": [81, 3.0], "realistic": [68, 1.8], "sensitivity": [57, 3.0], "social": [75, 0.8], "exposure": [62, 2.6], "tempo": [62, 1.6], "structure": [20, 2.6], "enterprising": [65, 0.8], "risk_appetite": [80, 2.6]}, "xy": [0.6142, -0.4944], "cluster": 4}, {"id": "wildlife_photographer", "title": "Wildlife Photographer", "family": "Outdoors & Nature", "blurb": "Photographs animals in the field for publications, agencies or conservation groups.", "entry": "Start local and unpaid, build a distinctive portfolio, then approach agencies and NGOs.", "retrain": "high", "bridge": "Technical mastery of optics and equipment is genuinely useful, and remote field logistics reward someone who plans like an engineer.", "friction": "Very few people earn a living purely from this. Most combine it with guiding, teaching or conservation work, and spend years unpaid first.", "quirk": "You will sit in a hide for eleven hours and get nothing, four days in a row, and the fifth day will justify all of it.", "traits": {"artistic": [79, 1.8], "realistic": [65, 3.0], "tempo": [25, 2.6], "conventional": [62, 1.0], "sensitivity": [70, 2.6], "outdoor": [95, 2.6], "exposure": [25, 2.6], "social": [44, 2.8], "structure": [12, 2.6], "risk_appetite": [85, 2.6]}, "xy": [-0.1367, -0.9847], "cluster": 3}, {"id": "ecologist", "title": "Field Ecologist", "family": "Outdoors & Nature", "blurb": "Surveys habitats and species, usually for conservation or development approval.", "entry": "Ecology master's plus volunteer survey seasons.", "retrain": "high", "bridge": "Survey design, GIS and statistics are increasingly what ecology employers actually want.", "friction": "Requires a biology conversion degree, and pay is low relative to the qualification.", "quirk": "Your job involves counting things nobody has ever counted, in places nobody visits, in weather nobody likes.", "traits": {"investigative": [81, 3.0], "outdoor": [81, 3.0], "tempo": [25, 0.8], "conventional": [65, 1.4], "sensitivity": [57, 1.6], "realistic": [70, 1.6], "social": [55, 0.8]}, "xy": [-0.4894, -0.2147], "cluster": 2}, {"id": "marine_biologist", "title": "Marine Biologist", "family": "Outdoors & Nature", "blurb": "Studies life in the sea, in the field and in the lab.", "entry": "Marine biology master's plus dive certification.", "retrain": "high", "bridge": "Instrumentation, data logging and modelling skills are in demand and short supply in this field.", "friction": "A full career change requiring years of new study, for positions that are few and heavily competed for.", "quirk": "A significant share of the job is boat logistics, funding applications and equipment that has corroded again.", "traits": {"investigative": [82, 3.0], "conventional": [70, 1.6], "outdoor": [84, 3.0], "realistic": [65, 2.0], "tempo": [25, 0.8], "sensitivity": [56, 0.8]}, "xy": [-0.5351, -0.1984], "cluster": 2}, {"id": "aquarium_manager", "title": "Aquarium / Aquaculture Manager", "family": "Outdoors & Nature", "blurb": "Runs life-support systems, water chemistry and animal welfare for a facility.", "entry": "Aquarist or technician role, learn the biology on the job, then move up to systems and facility management.", "retrain": "medium", "bridge": "An aquarium is a closed-loop system of pumps, filtration, chemistry and control. That is process engineering with fish in it, and facilities genuinely struggle to hire people who understand both halves.", "friction": "Early starts, weekends and public holidays. Animal welfare emergencies do not wait for your shift.", "quirk": "You will be phoned at 3am about a failing pump, and something alive depends on how fast you answer.", "traits": {"investigative": [81, 3.0], "conventional": [72, 1.6], "realistic": [68, 3.0], "outdoor": [73, 3.0], "social": [55, 1.8], "sensitivity": [58, 1.8], "structure": [62, 0.8]}, "xy": [-0.3784, 0.1327], "cluster": 2}, {"id": "vet_nurse", "title": "Veterinary Technician", "family": "Outdoors & Nature", "blurb": "Assists in animal surgery, diagnostics and care.", "entry": "Veterinary nursing diploma or degree.", "retrain": "high", "bridge": "Diagnostic imaging and lab equipment sides come easily to you.", "friction": "Requires a full new qualification, pay is low, and euthanasia is part of the job.", "quirk": "You will be trusted by an animal that has no idea you are helping it. That's the compensation, and it's real.", "traits": {"realistic": [69, 3.0], "outdoor": [68, 2.6], "social": [68, 3.0], "sensitivity": [63, 3.0], "tempo": [83, 1.6]}, "xy": [0.2978, 0.1751], "cluster": 0}, {"id": "park_ranger", "title": "Park Ranger / Conservation Officer", "family": "Outdoors & Nature", "blurb": "Manages a protected area — its habitats, visitors and infrastructure.", "entry": "Volunteer or seasonal ranger work, then a permanent post.", "retrain": "medium", "bridge": "Reserves need people who can maintain trails, water systems and equipment as much as people who know plants.", "friction": "Low pay, remote postings, and seasonal contracts are common.", "quirk": "Half the job is habitat and wildlife. The other half is a gate that keeps getting broken and people who ignore signs.", "traits": {"outdoor": [92, 2.6], "realistic": [68, 2.2], "social": [67, 3.0], "tempo": [78, 0.8], "sensitivity": [57, 2.2], "exposure": [65, 0.8], "conventional": [78, 0.6], "structure": [48, 2.6], "risk_appetite": [42, 2.6]}, "xy": [0.245, 0.2876], "cluster": 0}, {"id": "geologist", "title": "Geologist / Geotechnical Engineer", "family": "Outdoors & Nature", "blurb": "Reads the ground before anything gets built on it or dug out of it.", "entry": "Geotechnical graduate role or a geology master's.", "retrain": "medium", "bridge": "Soil and rock mechanics is already civil engineering coursework.", "friction": "Fieldwork means remote sites and long rotations away.", "quirk": "You will read a rock face and know what the ground here was doing before anything had bones.", "traits": {"investigative": [81, 3.0], "realistic": [71, 2.2], "outdoor": [78, 3.0], "conventional": [68, 1.4], "structure": [30, 0.8], "risk_appetite": [55, 0.8]}, "xy": [-0.1728, -0.2231], "cluster": 2}, {"id": "electrician", "title": "Electrician", "family": "Skilled Trades", "blurb": "Installs, tests and repairs electrical systems.", "entry": "Apprenticeship or accelerated adult training route, then licensing.", "retrain": "medium", "bridge": "You already understand the theory most apprentices spend two years learning, which shortens the classroom half considerably.", "friction": "You must still complete a licensed apprenticeship — the degree does not exempt you — and expect a pay cut while training.", "quirk": "You will be the person everyone in your family calls, forever, and it is a decent problem to have.", "traits": {"realistic": [92, 2.6], "investigative": [72, 1.6], "conventional": [78, 1.8], "outdoor": [70, 0.6], "artistic": [72, 0.8], "structure": [48, 2.6], "risk_appetite": [50, 2.6]}, "xy": [-0.2893, -0.17], "cluster": 2}, {"id": "plumber", "title": "Plumber / Heating Engineer", "family": "Skilled Trades", "blurb": "Installs and repairs water, gas and heating systems.", "entry": "Apprenticeship or adult conversion course, then gas or water certification, then self-employment.", "retrain": "medium", "bridge": "Flow, pressure and heat transfer are things you have actually studied, where most tradespeople work from rule of thumb. That matters for system design and commercial contracts, and it is where the money is.", "friction": "Licensing and apprenticeship are mandatory, the work is physically hard, and you will earn far below a graduate salary until you build a customer base.", "quirk": "You are one of a small number of people who can charge whatever the callout is worth at 11pm on a Sunday, and be thanked for it.", "traits": {"realistic": [92, 2.6], "investigative": [77, 1.4], "social": [58, 2.6], "exposure": [65, 0.8], "tempo": [60, 0.8], "sensitivity": [58, 0.8], "outdoor": [70, 0.8], "artistic": [72, 0.8], "structure": [42, 2.6], "risk_appetite": [55, 2.6]}, "xy": [0.074, -0.2383], "cluster": 0}, {"id": "cnc_machinist", "title": "CNC Machinist / Toolmaker", "family": "Skilled Trades", "blurb": "Turns drawings into precision metal parts.", "entry": "Machine shop role plus CAM training.", "retrain": "low", "bridge": "CAD to CAM to machine is a workflow you can pick up quickly.", "friction": "Shop floor work, standing all day, and shift patterns.", "quirk": "You work to tolerances thinner than a human hair, on a machine loud enough to need ear defenders.", "traits": {"realistic": [78, 3.0], "artistic": [64, 1.8], "conventional": [76, 1.8], "investigative": [75, 0.8]}, "xy": [-0.309, -0.0924], "cluster": 2}, {"id": "aircraft_tech", "title": "Aircraft Maintenance Engineer", "family": "Skilled Trades", "blurb": "Inspects and repairs aircraft to a legally enforced standard.", "entry": "Approved maintenance training organisation, then type ratings.", "retrain": "medium", "bridge": "Systems knowledge transfers, and the licences are respected worldwide.", "friction": "Licensing is strict and takes years, and night shifts are standard.", "quirk": "Your signature goes in a logbook that says the aircraft is safe. Not many jobs put your name on that.", "traits": {"realistic": [80, 3.0], "investigative": [69, 2.4], "conventional": [85, 1.0], "structure": [20, 0.8], "tempo": [65, 0.8]}, "xy": [0.0037, -0.1693], "cluster": 2}, {"id": "carpenter", "title": "Carpenter / Joiner", "family": "Skilled Trades", "blurb": "Builds in wood, from structure to fine fitted work.", "entry": "Apprenticeship or trade course, then a workshop or site role.", "retrain": "medium", "bridge": "Structural intuition and tolerance thinking help with anything load-bearing or fitted.", "friction": "Physical, weather-dependent, and hand skill takes years of practice to build.", "quirk": "Wood moves after you've finished with it, which means good joinery is a prediction about the future.", "traits": {"realistic": [78, 3.0], "investigative": [68, 1.6], "artistic": [75, 2.6], "sensitivity": [58, 0.6]}, "xy": [-0.1636, -0.274], "cluster": 2}, {"id": "chef", "title": "Chef", "family": "Food & Hospitality", "blurb": "Runs a kitchen section, and eventually the whole kitchen.", "entry": "Commis role in a good kitchen. Culinary school is optional; the line is not.", "retrain": "high", "bridge": "Process discipline, timing and consistency map surprisingly well onto a kitchen line.", "friction": "Long unsocial hours, low starting pay, and high burnout. This is the hardest lifestyle change on this list.", "quirk": "Service is two hours of controlled emergency, every night, and people who love it cannot explain why to people who don't.", "traits": {"realistic": [72, 3.0], "artistic": [72, 2.6], "tempo": [92, 2.6], "outdoor": [70, 1.0], "structure": [22, 2.6], "conventional": [78, 0.8], "enterprising": [82, 0.6], "social": [65, 0.6], "exposure": [70, 0.6], "risk_appetite": [55, 2.6]}, "xy": [0.7289, 0.0229], "cluster": 4}, {"id": "food_technologist", "title": "Food Technologist", "family": "Food & Hospitality", "blurb": "Develops and scales food products for manufacture.", "entry": "Food science conversion or a graduate role at a manufacturer.", "retrain": "medium", "bridge": "Scaling a recipe to a production line is a process engineering problem, not a cooking one.", "friction": "Factory-based and heavily regulated. Less creative than the title suggests.", "quirk": "You will change one ingredient by 0.4% and a million people will taste the difference without knowing why.", "traits": {"investigative": [79, 3.0], "conventional": [77, 2.6], "realistic": [65, 1.6], "artistic": [62, 1.0]}, "xy": [-0.3239, -0.0353], "cluster": 2}, {"id": "restaurant_manager", "title": "Restaurant / Hospitality Manager", "family": "Food & Hospitality", "blurb": "Runs the floor, the staff, the stock and the margins.", "entry": "Supervisor role, then assistant manager.", "retrain": "medium", "bridge": "Cost control, scheduling and throughput are quantitative problems most managers handle by feel.", "friction": "Evenings, weekends and thin margins, with relentless staff turnover.", "quirk": "You will fix a rota, a fridge and an argument before the first customer arrives.", "traits": {"enterprising": [82, 1.8], "social": [75, 3.0], "exposure": [68, 2.0], "tempo": [71, 3.0], "sensitivity": [58, 1.0], "conventional": [75, 1.6], "structure": [39, 1.8], "investigative": [70, 0.8], "realistic": [65, 0.8], "artistic": [62, 0.8]}, "xy": [0.3668, 0.1535], "cluster": 5}, {"id": "pilot", "title": "Commercial Pilot", "family": "Transport & Travel", "blurb": "Flies passengers or freight commercially.", "entry": "Integrated airline transport pilot licence course, or a cadet scheme if you can get one.", "retrain": "high", "bridge": "Aerodynamics, systems and instrument work are already familiar territory.", "friction": "Training is extremely expensive and usually self-funded, and medical standards can end the career at any point.", "quirk": "The job is hours of routine punctuated by minutes where your training is the only thing that matters. You train constantly for the minutes.", "traits": {"realistic": [64, 1.8], "investigative": [66, 1.8], "tempo": [85, 2.6], "conventional": [82, 1.8], "structure": [74, 2.6], "outdoor": [62, 2.0], "risk_appetite": [45, 2.6], "exposure": [38, 2.6]}, "xy": [-0.2443, 0.5486], "cluster": 0}, {"id": "expedition_guide", "title": "Expedition / Adventure Guide", "family": "Transport & Travel", "blurb": "Leads groups through wilderness, mountains or water safely.", "entry": "Qualification in the relevant discipline plus wilderness first aid, then logged seasons.", "retrain": "high", "bridge": "Risk assessment and contingency planning are formal skills you already have, and they are the core of the job.", "friction": "Seasonal income, physically demanding, and you carry the liability when things go wrong.", "quirk": "You are responsible for people who chose danger for fun and did not fully think it through.", "traits": {"outdoor": [95, 2.6], "realistic": [72, 1.8], "social": [73, 3.0], "tempo": [78, 2.6], "sensitivity": [56, 1.0], "enterprising": [82, 0.8], "exposure": [62, 2.6], "investigative": [65, 1.0], "structure": [26, 1.8], "risk_appetite": [78, 2.6]}, "xy": [0.6365, -0.0972], "cluster": 4}, {"id": "singer", "title": "Singer / Musician", "family": "Performance", "blurb": "Performs live, records, and usually teaches on the side.", "entry": "Perform constantly, record and release consistently, and build an audience before quitting anything.", "retrain": "high", "bridge": "Almost nothing from the degree transfers to the performance itself. But audio engineering, self-production, live sound and the business side all reward a technical mind, and that half is where most working musicians actually earn.", "friction": "Income is unpredictable and rarely comes from one source. Nearly everyone teaches, does sessions or works another job alongside. Talent is necessary but not sufficient — persistence and self-promotion decide it.", "quirk": "The performance is maybe 5% of it. The rest is practising, driving, loading gear, chasing payment and teaching on Tuesdays.", "traits": {"artistic": [95, 2.6], "exposure": [90, 2.6], "sensitivity": [75, 2.6], "structure": [10, 2.6], "enterprising": [65, 1.0], "risk_appetite": [92, 2.6], "tempo": [71, 1.8], "realistic": [78, 0.6]}, "xy": [0.8743, -0.783], "cluster": 4}, {"id": "sound_engineer", "title": "Sound / Audio Engineer", "family": "Performance", "blurb": "Records, mixes and runs live sound.", "entry": "Assist at a studio or venue. Reputation travels by word of mouth.", "retrain": "medium", "bridge": "Signal processing, acoustics and electronics are literally the subject matter.", "friction": "Late nights, freelance instability, and gear costs come out of your own pocket.", "quirk": "When you have done a perfect job, the audience thinks the band just sounded good.", "traits": {"artistic": [75, 2.8], "realistic": [68, 2.6], "investigative": [69, 3.0], "conventional": [85, 0.8], "structure": [20, 0.8], "tempo": [65, 0.8], "exposure": [74, 1.8], "sensitivity": [56, 1.0]}, "xy": [0.215, -0.2486], "cluster": 4}, {"id": "sports_coach", "title": "Sports Coach / Performance Analyst", "family": "Performance", "blurb": "Trains athletes, increasingly using data to do it.", "entry": "Coaching badges plus an analysis portfolio built on public match data.", "retrain": "medium", "bridge": "Performance analysis is a fast-growing niche where data skill is scarcer than sport knowledge.", "friction": "Coaching pay is poor below elite level, and your hours follow the fixture list.", "quirk": "You get to see a specific person get measurably better because of something you designed. Very few jobs offer that proof.", "traits": {"realistic": [67, 1.8], "outdoor": [68, 1.8], "social": [79, 3.0], "exposure": [66, 2.8], "sensitivity": [70, 1.8], "investigative": [75, 1.6], "conventional": [72, 1.6], "enterprising": [82, 0.8]}, "xy": [0.1026, 0.1443], "cluster": 5}, {"id": "physiotherapist", "title": "Physiotherapist", "family": "Health & Care", "blurb": "Rehabilitates injury and restores movement.", "entry": "Accredited physiotherapy degree.", "retrain": "high", "bridge": "Biomechanics is mechanics applied to the body, so the theory will feel familiar.", "friction": "A regulated degree from scratch, with clinical placements. No shortcut exists.", "quirk": "You will watch someone walk properly for the first time in a year, and they will credit themselves. Correctly.", "traits": {"investigative": [80, 0.8], "social": [79, 3.0], "sensitivity": [68, 2.8], "exposure": [65, 1.0], "realistic": [74, 2.2], "tempo": [78, 0.8], "outdoor": [70, 1.4]}, "xy": [0.2586, 0.2437], "cluster": 0}, {"id": "biomedical_eng", "title": "Biomedical Engineer", "family": "Health & Care", "blurb": "Designs and maintains medical devices and diagnostic equipment.", "entry": "Biomedical master's or a graduate role at a device manufacturer or hospital.", "retrain": "low", "bridge": "The most direct route from engineering into healthcare without retraining clinically.", "friction": "Heavy regulation slows everything down, and device approval cycles are long.", "quirk": "The device you calibrate this morning is used on somebody this afternoon.", "traits": {"realistic": [68, 2.4], "investigative": [76, 3.0], "conventional": [82, 1.6], "social": [80, 1.0], "sensitivity": [65, 1.0]}, "xy": [-0.1631, 0.1441], "cluster": 1}, {"id": "clinical_scientist", "title": "Clinical Engineer / Medical Physicist", "family": "Health & Care", "blurb": "Runs and validates the technology hospitals depend on.", "entry": "Clinical scientist training programme.", "retrain": "medium", "bridge": "Health systems recruit physics and engineering graduates directly into structured training schemes.", "friction": "Structured, slow-moving public-sector progression.", "quirk": "You are the reason a scan is trustworthy, and no patient will ever know your job exists.", "traits": {"realistic": [70, 1.6], "investigative": [78, 3.0], "conventional": [82, 1.8], "social": [77, 1.6], "exposure": [65, 0.6], "sensitivity": [65, 1.0]}, "xy": [-0.0883, 0.1323], "cluster": 1}, {"id": "paramedic", "title": "Paramedic", "family": "Health & Care", "blurb": "Delivers emergency care wherever the call is.", "entry": "Paramedic science degree and professional registration.", "retrain": "high", "bridge": "Calm systematic diagnosis under time pressure is a transferable habit.", "friction": "Shift work, repeated trauma exposure, and a full clinical degree to enter.", "quirk": "You will spend more shifts on falls, chest pain and loneliness than on anything that looks like television.", "traits": {"social": [79, 3.0], "tempo": [92, 2.6], "sensitivity": [60, 2.6], "realistic": [74, 1.6], "outdoor": [70, 0.8], "structure": [42, 2.6], "artistic": [58, 0.8]}, "xy": [0.4898, 0.1824], "cluster": 0}, {"id": "firefighter", "title": "Firefighter", "family": "Law & Public Service", "blurb": "Responds to fire, rescue and hazardous material incidents.", "entry": "Fire service recruitment, then in-service training.", "retrain": "medium", "bridge": "Fire safety engineering and hazmat response both benefit from a technical background, and it opens the fire-investigation route later on.", "friction": "Demanding physical entry standards, shift patterns, and a long recruitment cycle.", "quirk": "Most of the calls are not fires. A large share of the job is road accidents, flooding and getting people out of things.", "traits": {"realistic": [77, 2.6], "outdoor": [75, 2.6], "tempo": [90, 2.6], "social": [78, 2.6], "sensitivity": [56, 0.8], "structure": [58, 2.6], "investigative": [65, 0.8]}, "xy": [0.2643, 0.3813], "cluster": 0}, {"id": "air_traffic", "title": "Air Traffic Controller", "family": "Transport & Travel", "blurb": "Keeps aircraft separated in the air and on the ground.", "entry": "National air traffic training programme, entered by aptitude test.", "retrain": "medium", "bridge": "Spatial and systems reasoning is exactly what the aptitude tests measure, and no degree subject is required.", "friction": "Selection is severe and most applicants fail. The shift work is mentally exhausting.", "quirk": "You will hold twenty aircraft in your head at once, and then hand over and think about dinner. The switch-off is part of the training.", "traits": {"realistic": [65, 1.6], "investigative": [66, 1.6], "tempo": [92, 2.6], "conventional": [78, 2.0], "social": [75, 1.6], "exposure": [35, 2.6], "structure": [80, 2.6], "outdoor": [62, 0.8], "risk_appetite": [22, 2.6]}, "xy": [-0.1652, 0.8593], "cluster": 0}, {"id": "gis_specialist", "title": "GIS / Remote Sensing Specialist", "family": "Data & Analysis", "blurb": "Analyses satellite and spatial data for planning, agriculture or conservation.", "entry": "QGIS plus Python, then a portfolio of spatial analyses.", "retrain": "low", "bridge": "A genuine bridge between technical work and the environmental or outdoor sectors.", "friction": "Niche, so there are fewer employers and location flexibility matters more.", "quirk": "You can see a change in a landscape from orbit before anyone standing in it notices.", "traits": {"investigative": [73, 3.0], "conventional": [69, 3.0], "realistic": [62, 2.2], "outdoor": [88, 0.8]}, "xy": [-0.2734, -0.001], "cluster": 2}, {"id": "actuary", "title": "Actuary", "family": "Business & Finance", "blurb": "Prices risk for insurers and pension funds.", "entry": "Actuarial trainee role, then the professional exam sequence.", "retrain": "medium", "bridge": "Engineering maths is more than adequate for the exams, and employers hire on aptitude rather than subject.", "friction": "Years of professional exams taken alongside full-time work, with high attrition.", "quirk": "You put a number on how likely something bad is, and organisations move billions based on it.", "traits": {"investigative": [78, 3.0], "conventional": [72, 3.0], "tempo": [20, 2.6], "sensitivity": [56, 0.8], "exposure": [22, 2.6], "social": [25, 0.6], "enterprising": [72, 1.0], "structure": [78, 2.6]}, "xy": [-0.9901, -0.0544], "cluster": 2}, {"id": "hr_talent", "title": "Technical Recruiter", "family": "Business & Finance", "blurb": "Finds and hires engineers for companies that need them.", "entry": "Agency role, or an in-house talent team at a technology company.", "retrain": "low", "bridge": "You can tell a strong technical CV from a padded one, which most recruiters cannot.", "friction": "Target-driven and high-churn, and your reputation depends on candidates you cannot control.", "quirk": "You will change the trajectory of someone's life with a phone call, and they will remember your name for a decade.", "traits": {"social": [79, 3.0], "exposure": [69, 3.0], "enterprising": [85, 2.4], "sensitivity": [72, 1.4], "risk_appetite": [62, 0.8], "tempo": [60, 0.6], "investigative": [72, 0.6], "realistic": [60, 0.6]}, "xy": [0.353, 0.0852], "cluster": 5}, {"id": "lawyer", "title": "Lawyer / Advocate", "family": "Law & Public Service", "blurb": "Argues cases, drafts contracts, and reads what nobody else wants to read.", "entry": "Law degree or conversion course, then bar exam and pupillage or a training contract.", "retrain": "high", "bridge": "If you argue for the pleasure of it and notice when a rule has a hole in it, that is the raw material. Technical litigation, construction disputes and product liability all pay a premium for someone who understands what the evidence is describing.", "friction": "A full law degree and bar qualification from scratch, then years as a junior. The arguing is a small fraction of the job; most of it is reading and drafting alone.", "quirk": "The arguing everyone imagines is a thin slice. Most of it is reading, drafting, and knowing one file better than anyone else in the room.", "traits": {"artistic": [70, 1.0], "investigative": [70, 3.0], "sensitivity": [58, 1.8], "enterprising": [82, 2.6], "exposure": [72, 2.6], "conventional": [84, 2.6], "tempo": [66, 2.6], "social": [71, 2.2], "structure": [62, 2.6]}, "xy": [0.1685, 0.3505], "cluster": 5}, {"id": "politician", "title": "Politician / Campaign Organiser", "family": "Law & Public Service", "blurb": "Wins support for a position and then has to deliver on it in public.", "entry": "Local party work, campaign volunteering, student politics, then a council seat before anything larger.", "retrain": "high", "bridge": "Arguing well is half of it; the other half is holding a room, and very few people have both. Legislatures are short of people who can read a technical brief on energy, transport or AI and not be led by whoever briefed them last.", "friction": "No stable career path, no job security, and your private life becomes public. Most people who try this never hold office, and the ones who do spend years unpaid getting there.", "quirk": "Everything you have ever posted becomes evidence. Everyone considering this should sit with that fact first.", "traits": {"enterprising": [94, 2.6], "exposure": [94, 2.6], "social": [80, 2.6], "tempo": [80, 2.6], "sensitivity": [58, 0.8], "structure": [25, 2.6], "artistic": [58, 0.8], "conventional": [78, 0.8], "investigative": [65, 0.8], "risk_appetite": [78, 2.6]}, "xy": [0.8972, 0.0725], "cluster": 4}, {"id": "freelance_dev", "title": "Freelance Developer / Consultant", "family": "Software & Computing", "blurb": "Sells your own technical work directly to clients, on your own schedule.", "entry": "Build a reputation and two or three references while employed, then leave with clients already lined up.", "retrain": "low", "bridge": "The most realistic route out of a 9-to-5 for someone with a technical degree. You already have the sellable skill; what you'd be learning is quoting, invoicing and saying no.", "friction": "Income arrives in lumps and sometimes late. You spend a real share of every week finding the next client rather than doing the work, and there is no sick pay.", "quirk": "Your worst month and your best month can differ by a factor of five, and you'll learn to budget on the worst one.", "traits": {"investigative": [75, 2.8], "realistic": [58, 2.0], "conventional": [60, 1.6], "structure": [12, 2.6], "enterprising": [62, 2.6], "risk_appetite": [78, 2.6], "social": [32, 2.6], "exposure": [30, 2.6]}, "xy": [-0.1075, -0.5939], "cluster": 3}, {"id": "content_creator", "title": "Content Creator / Educator Online", "family": "Creative & Media", "blurb": "Builds an audience around explaining or making something, then earns from that audience.", "entry": "Publish consistently for a year before expecting anything. Treat it as a second job, not a first one.", "retrain": "medium", "bridge": "Technical explanation is one of the few niches where the audience is large and the supply of people who genuinely understand the subject is small.", "friction": "Years of output before any income, and the algorithm decides, not you. Being visible online also means being criticised by strangers constantly.", "quirk": "You will make something in an hour that outperforms the thing you spent a month on, and you will never fully understand why.", "traits": {"artistic": [85, 2.6], "social": [72, 1.8], "exposure": [90, 2.6], "sensitivity": [59, 3.0], "structure": [12, 2.6], "enterprising": [72, 2.6], "risk_appetite": [88, 2.6], "investigative": [60, 0.8], "tempo": [78, 0.8]}, "xy": [1.0, -0.4197], "cluster": 4}, {"id": "real_estate", "title": "Property / Real Estate Agent", "family": "Business & Finance", "blurb": "Matches buyers to properties and gets paid when a deal closes.", "entry": "Junior agent at an established firm, then licensing where your market requires it.", "retrain": "medium", "bridge": "A technical eye for what is wrong with a building is a real advantage in valuation and in surveying-adjacent work.", "friction": "Commission only, in most markets. Weekends and evenings are when clients are free, and a slow quarter means no income at all.", "quirk": "You are present for one of the largest decisions of a stranger's life, repeatedly.", "traits": {"enterprising": [90, 2.6], "exposure": [82, 2.6], "risk_appetite": [72, 2.6], "social": [80, 1.6], "tempo": [60, 0.8], "sensitivity": [58, 0.8], "realistic": [69, 1.2], "investigative": [62, 0.6], "conventional": [68, 1.0], "structure": [30, 2.6]}, "xy": [0.6014, -0.0914], "cluster": 4}, {"id": "event_manager", "title": "Event / Production Manager", "family": "Business & Finance", "blurb": "Runs live events where a hundred things must happen in the right order.", "entry": "Assist on events, take on progressively larger production roles.", "retrain": "medium", "bridge": "Critical-path scheduling and contingency planning are formal engineering skills, and live events are one of the few places they are used under real time pressure.", "friction": "Extremely long days around each event, and everything visibly goes wrong in front of a paying audience.", "quirk": "Everything either works in front of a paying audience or fails in front of one. There is no staging environment.", "traits": {"conventional": [78, 1.0], "structure": [32, 2.6], "tempo": [92, 2.6], "enterprising": [78, 2.6], "social": [72, 3.0], "exposure": [72, 2.6], "sensitivity": [58, 1.6], "artistic": [68, 1.4]}, "xy": [0.7072, 0.2208], "cluster": 4}], "traits": {"realistic": {"label": "Hands-on", "high": "You'd rather work with the thing itself than a description of it.", "low": "You'd rather work with ideas and symbols than objects."}, "investigative": {"label": "Analytical", "high": "You want to understand why before you'll accept that something works.", "low": "You're content to use what works without dismantling it."}, "artistic": {"label": "Expressive", "high": "You care how something feels and looks, not only whether it functions.", "low": "You judge things by what they do, not how they land."}, "social": {"label": "People-centred", "high": "Work feels worthwhile when a person is visibly better off for it.", "low": "You'd rather the work stood on its own than be about anybody."}, "enterprising": {"label": "Driving", "high": "You'll push, pitch and take the front seat when something needs moving.", "low": "You'd rather do the work well than be the one selling it."}, "conventional": {"label": "Orderly", "high": "You notice when things are out of place and it bothers you until they aren't.", "low": "You'll tolerate a mess if the outcome is fine."}, "structure": {"label": "Needs structure", "high": "Fixed hours, clear rules and a known shape to the day suit you.", "low": "Being told when to be somewhere grates on you more than the work itself."}, "risk_appetite": {"label": "Risk appetite", "high": "An unpredictable income is a price you'd pay for the right work.", "low": "You want to know what lands in your account next month."}, "exposure": {"label": "Comfort in front", "high": "Being watched, judged or performed-at doesn't drain you.", "low": "You do your best work when nobody is looking at you."}, "tempo": {"label": "Pace tolerance", "high": "You sharpen up when things go wrong and everyone is shouting.", "low": "You need long uninterrupted stretches to do anything good."}, "outdoor": {"label": "Outdoor appetite", "high": "You'd take weather and discomfort over a climate-controlled room.", "low": "You want a desk, a chair and a roof."}, "sensitivity": {"label": "Sensitivity", "high": "Mood, atmosphere and other people's states land on you hard.", "low": "You're not much affected by the emotional weather in a room."}}, "questions": [{"id": "s01", "text": "You have skipped classes just because you didn't feel like going that day.", "loads": {"structure": -1.3, "conventional": -0.5}}, {"id": "s02", "text": "You would rather earn less and set your own hours than earn more and be in an office at 9am every day.", "loads": {"structure": -1.4, "risk_appetite": 0.7}}, {"id": "s03", "text": "When nobody sets you a deadline, the work still gets done.", "loads": {"structure": -0.8, "conventional": 0.7, "risk_appetite": 0.5}}, {"id": "s04", "text": "You pack for a trip days in advance rather than the night before.", "loads": {"structure": 1.1, "conventional": 0.8}}, {"id": "s05", "text": "You could work from home alone for weeks without missing an office.", "loads": {"exposure": -1.0, "social": -0.9, "structure": -0.6}}, {"id": "r01", "text": "You would rather have a fixed monthly salary than earn more some months and less in others.", "loads": {"risk_appetite": -1.4, "structure": 0.7}}, {"id": "r02", "text": "Starting something of your own appeals to you more than joining a company that already exists.", "loads": {"enterprising": 1.1, "risk_appetite": 1.2}}, {"id": "r03", "text": "You would take a job you found interesting over one that paid twice as much.", "loads": {"risk_appetite": 1.1, "conventional": -0.4}}, {"id": "r04", "text": "You have spent your own money on tools or equipment for something that isn't your job.", "loads": {"realistic": 0.7, "artistic": 0.5, "risk_appetite": 0.5}}, {"id": "e01", "text": "You enjoy arguing, even about small things.", "loads": {"enterprising": 1.0, "investigative": 0.7, "tempo": 0.4}}, {"id": "e02", "text": "You have changed someone's mind about something they felt strongly about.", "loads": {"enterprising": 1.2, "exposure": 0.5}}, {"id": "e03", "text": "You have haggled over a price rather than paying what was asked.", "loads": {"enterprising": 1.1, "conventional": 0.3}}, {"id": "e04", "text": "In group projects you end up deciding who does what.", "loads": {"enterprising": 1.2, "social": 0.4}}, {"id": "e05", "text": "You would enjoy selling something you had made yourself.", "loads": {"enterprising": 1.1, "risk_appetite": 0.6}}, {"id": "x01", "text": "You are comfortable speaking in front of a large group.", "loads": {"exposure": 1.4, "enterprising": 0.6}}, {"id": "x02", "text": "You would rather do good work quietly than be publicly credited for it.", "loads": {"exposure": -1.2, "enterprising": -0.6}}, {"id": "x03", "text": "Being filmed or photographed makes you self-conscious.", "loads": {"exposure": -1.1, "sensitivity": 0.5}}, {"id": "m01", "text": "When something breaks at home, you try to fix it yourself before calling anyone.", "loads": {"realistic": 1.2, "investigative": 0.5}}, {"id": "m02", "text": "You have taken something apart just to see what was inside.", "loads": {"realistic": 1.0, "investigative": 0.8}}, {"id": "m03", "text": "Coming home physically tired after a day's work feels good rather than draining.", "loads": {"realistic": 1.0, "outdoor": 0.8}}, {"id": "m04", "text": "You would rather work with machines and materials than with people all day.", "loads": {"realistic": 1.1, "social": -1.0}}, {"id": "i01", "text": "You have stayed up late reading about something purely because you wanted to understand it.", "loads": {"investigative": 1.3}}, {"id": "i02", "text": "You check whether a claim is true before repeating it to anyone.", "loads": {"investigative": 1.0, "conventional": 0.6}}, {"id": "i03", "text": "You would rather spend a week on one hard problem than a week on twenty easy ones.", "loads": {"investigative": 0.8, "tempo": -1.1}}, {"id": "i04", "text": "You notice when a rule has a loophole in it.", "loads": {"investigative": 0.9, "enterprising": 0.6, "conventional": 0.4}}, {"id": "c01", "text": "You spot small mistakes in things other people have already checked.", "loads": {"conventional": 1.2}}, {"id": "c02", "text": "Your files, photos and passwords are organised rather than scattered.", "loads": {"conventional": 1.1, "structure": 0.6}}, {"id": "c03", "text": "You would feel worse about breaking a rule than about missing a target.", "loads": {"conventional": 1.1, "structure": 0.7}}, {"id": "c04", "text": "You would rather be responsible for money than for people.", "loads": {"conventional": 0.8, "social": -1.0}}, {"id": "a01", "text": "You have redone something that already worked, because it looked wrong to you.", "loads": {"artistic": 1.2, "sensitivity": 0.5}}, {"id": "a02", "text": "You draw, write, cook, play music or make things in your spare time.", "loads": {"artistic": 1.2, "realistic": 0.3}}, {"id": "a03", "text": "You have strong opinions about how something is worded.", "loads": {"artistic": 1.0, "conventional": 0.6}}, {"id": "p01", "text": "You would rather teach someone to do it than do it yourself twice as fast.", "loads": {"social": 1.3}}, {"id": "p02", "text": "Friends come to you when they have something difficult to talk through.", "loads": {"social": 1.0, "sensitivity": 0.8}}, {"id": "p03", "text": "Work feels worthwhile when you can point to one person who is better off for it.", "loads": {"social": 1.2}}, {"id": "p04", "text": "Three days without speaking to anyone would start to bother you.", "loads": {"social": 0.9, "exposure": 0.6}}, {"id": "f01", "text": "A song or a film has affected your mood for the rest of the day.", "loads": {"sensitivity": 1.2, "artistic": 0.7}}, {"id": "f02", "text": "Criticism of your work stays on your mind for days afterwards.", "loads": {"sensitivity": 1.2, "exposure": -0.6}}, {"id": "f03", "text": "You can usually tell how someone is feeling before they say anything.", "loads": {"sensitivity": 1.2, "social": 0.7}}, {"id": "f04", "text": "Walking into a tense room, you notice it immediately.", "loads": {"sensitivity": 1.1}}, {"id": "o01", "text": "You still enjoy being outside when the weather turns bad.", "loads": {"outdoor": 1.3}}, {"id": "o02", "text": "A whole day indoors leaves you restless.", "loads": {"outdoor": 1.2}}, {"id": "o03", "text": "You would be happy living somewhere remote, a long way from a city.", "loads": {"outdoor": 1.0, "social": -0.5, "exposure": -0.4}}, {"id": "t01", "text": "You are the calm one in an emergency while everyone around you panics.", "loads": {"tempo": 1.4}}, {"id": "t02", "text": "You would rather have an unpredictable day than the same routine every day.", "loads": {"tempo": 1.1, "structure": -1.0}}, {"id": "t03", "text": "Doing the same task every day for a month would suit you fine.", "loads": {"conventional": 0.9, "structure": 0.9, "tempo": -1.0}}, {"id": "t04", "text": "Being interrupted repeatedly ruins your day.", "loads": {"tempo": -1.1, "investigative": 0.5}}, {"id": "t05", "text": "Working nights or weekends wouldn't bother you if the work were right.", "loads": {"structure": -1.0, "tempo": 0.6}}, {"id": "a04", "text": "Ugly packaging or bad typography genuinely bothers you.", "loads": {"artistic": 1.1, "sensitivity": 0.4}}, {"id": "a05", "text": "You would paint a room a colour you loved over one that was easier to keep clean.", "loads": {"artistic": 1.1, "conventional": -0.4}}, {"id": "a06", "text": "You notice the music in a film while you are watching it.", "loads": {"artistic": 1.0, "sensitivity": 0.6}}, {"id": "o04", "text": "You would pick a walking holiday with no signal over a city break.", "loads": {"outdoor": 1.2, "social": -0.3}}, {"id": "o05", "text": "You have gone camping or hiking by choice in the last two years.", "loads": {"outdoor": 1.1, "realistic": 0.4}}, {"id": "o06", "text": "Eight hours at a desk is the part of a job you would dread most.", "loads": {"outdoor": 1.0, "structure": -0.6}}, {"id": "m05", "text": "You would assemble the furniture yourself rather than pay for it built.", "loads": {"realistic": 1.1, "risk_appetite": 0.3}}, {"id": "m06", "text": "You can tell from the sound that a machine is about to go wrong.", "loads": {"realistic": 1.0, "investigative": 0.6}}, {"id": "r05", "text": "You have made a decision your family thought was reckless, and it worked out.", "loads": {"risk_appetite": 1.2, "enterprising": 0.6}}, {"id": "r06", "text": "You would put your own savings into something you believed in.", "loads": {"risk_appetite": 1.3}}, {"id": "i05", "text": "You read the footnotes.", "loads": {"investigative": 1.0, "conventional": 0.7}}, {"id": "i06", "text": "When two people disagree about a fact, you look it up rather than let it go.", "loads": {"investigative": 1.1, "enterprising": 0.4}}], "scale": ["Strongly disagree", "Disagree", "Slightly disagree", "Neutral", "Slightly agree", "Agree", "Strongly agree"], "archetypes": {"nouns": {"realistic": {"high": "The Maker", "low": "The Theorist"}, "investigative": {"high": "The Digger", "low": "The Pragmatist"}, "artistic": {"high": "The Shaper", "low": "The Functionalist"}, "social": {"high": "The Anchor", "low": "The Lone Operator"}, "enterprising": {"high": "The Mover", "low": "The Craftsperson"}, "conventional": {"high": "The Checker", "low": "The Improviser"}}, "qualifiers": {"structure": {"high": "who wants the rails on", "low": "who won't be timetabled"}, "risk_appetite": {"high": "who can live on an uneven month", "low": "who needs the money to land on time"}, "exposure": {"high": "who works best watched", "low": "who works best unwatched"}, "tempo": {"high": "who comes alive when it breaks", "low": "who needs the long quiet"}, "outdoor": {"high": "who has to be outside", "low": "who is fine with four walls"}, "sensitivity": {"high": "who feels the whole room", "low": "who doesn't take it home"}}, "definition": [{"min": 34, "label": "Sharply defined", "note": "You answered decisively and your profile has strong edges. That makes the matches below unusually specific — and it means a couple of careers are firmly ruled out for you, which is useful information."}, {"min": 22, "label": "Clearly shaped", "note": "Your profile has a clear centre of gravity with room around it. Most people land here, and it means several quite different careers can fit you well."}, {"min": 12, "label": "Broadly balanced", "note": "You sit near the middle on most dimensions. That is genuine flexibility rather than a lack of character — but it does mean the match percentages below sit closer together, so read the top eight as a set rather than a ranking."}, {"min": 0, "label": "Very even", "note": "You answered close to neutral on most things. Either you're genuinely adaptable, or you hedged. If it was hedging, retaking it and committing to the outer circles will give you far more usable results."}]}, "projection": {"traits": ["realistic", "investigative", "artistic", "social", "enterprising", "conventional", "structure", "risk_appetite", "exposure", "tempo", "outdoor", "sensitivity"], "col_weight": [1.39194, 1.47648, 0.98234, 1.18322, 0.94868, 1.32759, 1.15974, 0.95131, 1.15758, 1.12138, 0.90139, 1.09659], "components": [[-0.048172, -0.260318, 0.082484, 0.331201, 0.27089, -0.182867, -0.41466, 0.225009, 0.429013, 0.544207, 0.004346, 0.061561], [-0.136214, 0.120747, -0.316374, 0.278994, 0.090821, 0.224432, 0.575339, -0.333058, 0.009371, 0.530282, 0.04713, -0.069769]], "mean": [21.66208, 30.1387, 9.31999, 14.31691, 9.40382, 24.41109, -3.98661, 3.36528, 7.78475, 8.50849, 7.85334, 6.22312], "span": 71.73304, "explained": [0.3162, 0.1768]}, "clusters": {"3": {"trait": "structure", "pole": "low", "label": "Needs structure", "size": 4}, "4": {"trait": "exposure", "pole": "high", "label": "Comfort in front", "size": 10}, "0": {"trait": "tempo", "pole": "high", "label": "Pace tolerance", "size": 13}, "5": {"trait": "enterprising", "pole": "high", "label": "Driving", "size": 12}, "1": {"trait": "social", "pole": "high", "label": "People-centred", "size": 11}, "2": {"trait": "investigative", "pole": "high", "label": "Analytical", "size": 30}}, "model": {"prior_sd": 0.62, "noise_sd": 0.75}};
+/* CareerCompiler — client application.
+ *
+ * A faithful port of psychometrics.py and engine.py. Everything the Python side
+ * does at build and evaluation time, this does live in the browser: posterior
+ * estimation, adaptive item selection, Monte Carlo uncertainty on the match
+ * scores, leave-one-out attribution, and the PCA projection.
+ *
+ * Nothing is sent anywhere. The whole model is about six kilobytes of numbers.
+ */
+
+const {careers: CAREERS, traits: TRAITS, questions: QUESTIONS, scale: SCALE,
+       archetypes: ARCH, projection: PROJ, model: MODEL} = DATA;
+
+const TKEYS = Object.keys(TRAITS);
+const T = TKEYS.length;
+const N = QUESTIONS.length;
+const {prior_sd: PRIOR_SD, noise_sd: NOISE_SD} = MODEL;
+
+const PER_SLIDE = 4;
+const MIN_ITEMS = 24;              // below this the posterior is too loose to rank
+const MAX_ITEMS = 40;              // adaptive selection saturates well before the full bank
+const MAX_SLIDES = Math.ceil(MAX_ITEMS / PER_SLIDE);
+const FLOOR = 0.48, CEIL = 0.95;
+const RIASEC = ["realistic","investigative","artistic","social","enterprising","conventional"];
+const WORKSTYLE = ["structure","risk_appetite","exposure","tempo","outdoor","sensitivity"];
+const RETRAIN = {
+  low:"Little or no retraining — you could start applying now.",
+  medium:"Some retraining: a conversion course, certification or a step back in seniority.",
+  high:"Substantial retraining. Expect years, not months, and a real income gap while you do it."
+};
+
+/* loading matrix, normalised exactly as the Python side normalises it */
+const LAMBDA = QUESTIONS.map(q => {
+  const row = new Array(T).fill(0);
+  for (const [t, v] of Object.entries(q.loads)) row[TKEYS.indexOf(t)] = v;
+  return row;
+});
+{
+  let mx = 0;
+  for (const r of LAMBDA) for (const v of r) mx = Math.max(mx, Math.abs(v));
+  for (const r of LAMBDA) for (let j = 0; j < T; j++) r[j] /= mx;
+}
+
+/* ------------------------------------------------------------- linear algebra */
+function matInv(A){                                   // Gauss-Jordan, n is 12
+  const n = A.length;
+  const M = A.map((r, i) => [...r, ...Array.from({length: n}, (_, j) => +(i === j))]);
+  for (let c = 0; c < n; c++){
+    let p = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    const d = M[c][c] || 1e-12;
+    for (let j = 0; j < 2 * n; j++) M[c][j] /= d;
+    for (let r = 0; r < n; r++){
+      if (r === c) continue;
+      const f = M[r][c];
+      if (!f) continue;
+      for (let j = 0; j < 2 * n; j++) M[r][j] -= f * M[c][j];
+    }
+  }
+  return M.map(r => r.slice(n));
+}
+const matVec = (A, v) => A.map(r => r.reduce((s, x, j) => s + x * v[j], 0));
+
+function cholesky(A){
+  const n = A.length, L = Array.from({length: n}, () => new Array(n).fill(0));
+  for (let i = 0; i < n; i++) for (let j = 0; j <= i; j++){
+    let s = A[i][j];
+    for (let k = 0; k < j; k++) s -= L[i][k] * L[j][k];
+    L[i][j] = i === j ? Math.sqrt(Math.max(s, 1e-10)) : s / (L[j][j] || 1e-10);
+  }
+  return L;
+}
+
+/* --------------------------------------------------------------- estimation */
+function posterior(answers){
+  // Normal-normal conjugate update. Closed form: no iteration, no tuning.
+  const P = Array.from({length: T}, (_, i) =>
+    Array.from({length: T}, (_, j) => i === j ? 1 / (PRIOR_SD ** 2) : 0));
+  const b = new Array(T).fill(0);
+
+  QUESTIONS.forEach((q, i) => {
+    const raw = answers[q.id];
+    if (!raw) return;
+    const z = (raw - 4) / 3, lam = LAMBDA[i];
+    for (let a = 0; a < T; a++){
+      if (!lam[a]) continue;
+      b[a] += lam[a] * z / (NOISE_SD ** 2);
+      for (let c = 0; c < T; c++) if (lam[c]) P[a][c] += lam[a] * lam[c] / (NOISE_SD ** 2);
+    }
+  });
+
+  const cov = matInv(P);
+  const mean = matVec(cov, b);
+  const sd = cov.map((r, i) => Math.sqrt(Math.max(r[i], 0)));
+  return {mean, sd, cov};
+}
+const toScale  = m => m.map(v => Math.max(0, Math.min(100, 50 + v * 50 / PRIOR_SD)));
+const sdToScale = s => s.map(v => v * 50 / PRIOR_SD);
+
+/* ---------------------------------------------------- adaptive item selection */
+function traitRelevance(topIds){
+  // Traits the front-runners already agree on cannot re-rank them, so resolving
+  // those traits buys nothing. Relevance is the spread of the leaders' targets.
+  const top = CAREERS.filter(c => topIds.includes(c.id));
+  const rel = new Array(T).fill(0);
+  if (top.length < 2) return rel.fill(1);
+  TKEYS.forEach((t, i) => {
+    const vals = top.filter(c => c.traits[t]).map(c => c.traits[t][0]);
+    const ws   = top.filter(c => c.traits[t]).map(c => c.traits[t][1]);
+    if (vals.length < 2) return;
+    const mu = vals.reduce((a, b) => a + b) / vals.length;
+    const sd = Math.sqrt(vals.reduce((s, v) => s + (v - mu) ** 2, 0) / vals.length);
+    rel[i] = sd * (ws.reduce((a, b) => a + b) / ws.length);
+  });
+  const mx = Math.max(...rel);
+  return mx > 0 ? rel.map(v => v / mx + 0.15) : rel.fill(1);
+}
+
+function rankOneUpdate(cov, lam){
+  const cl = matVec(cov, lam);
+  const denom = NOISE_SD ** 2 + lam.reduce((s, v, j) => s + v * cl[j], 0);
+  return cov.map((row, i) => row.map((v, j) => v - cl[i] * cl[j] / denom));
+}
+
+function infoGain(cov, lam, rel){
+  const cl = matVec(cov, lam);
+  const denom = NOISE_SD ** 2 + lam.reduce((s, v, j) => s + v * cl[j], 0);
+  let g = 0;
+  for (let t = 0; t < T; t++) g += (cl[t] ** 2 / denom) * rel[t];
+  return g;
+}
+
+function selectBatch(asked, cov, topIds, k){
+  // Greedy, with the covariance updated after each pick so the batch spreads
+  // across traits on its own — no explicit diversity rule needed.
+  const rel = traitRelevance(topIds);
+  let C = cov;
+  const pool = [], picks = [];
+  for (let i = 0; i < N; i++) if (!asked.includes(i)) pool.push(i);
+  for (let n = 0; n < Math.min(k, pool.length); n++){
+    let best = pool[0], bestG = -Infinity;
+    for (const i of pool){
+      const g = infoGain(C, LAMBDA[i], rel);
+      if (g > bestG){ bestG = g; best = i; }
+    }
+    picks.push(best);
+    pool.splice(pool.indexOf(best), 1);
+    C = rankOneUpdate(C, LAMBDA[best]);
+  }
+  return picks;
+}
+
+/* ------------------------------------------------------------------ scoring */
+function fitOne(user, profile){
+  let w = 0, earned = 0; const detail = [];
+  for (const [t, [target, weight]] of Object.entries(profile)){
+    const ww = weight * (0.4 + 1.6 * Math.abs(target - 50) / 50);
+    const you = user[TKEYS.indexOf(t)];
+    const gap = Math.abs(you - target);
+    const close = 1 - gap / 100;
+    earned += ww * close; w += ww;
+    detail.push({trait: t, label: TRAITS[t].label, you: Math.round(you * 10) / 10,
+                 wants: target, gap: Math.round(gap), impact: ww * (close - 0.5)});
+  }
+  detail.sort((a, b) => b.impact - a.impact);
+  return {fit: w ? earned / w : 0,
+    drivers: detail.filter(d => d.gap <= 22 && Math.abs(d.wants - 50) >= 12).slice(0, 3),
+    drags: detail.filter(d => d.gap >= 25).sort((a, b) => b.gap - a.gap).slice(0, 3)};
+}
+const fitAll = user => CAREERS.map(c => fitOne(user, c.traits).fit);
+const display = f => Math.max(0, Math.min(100, Math.round((f - FLOOR) / (CEIL - FLOOR) * 100)));
+
+/* Monte Carlo: how much would the ranking move if the traits are only known to
+ * within their standard error? Careers whose intervals overlap the leader's are
+ * reported as tied rather than ranked, because the data cannot separate them. */
+function uncertainty(post, draws = 400){
+  const L = cholesky(post.cov);
+  const samples = [];
+  for (let d = 0; d < draws; d++){
+    const z = Array.from({length: T}, () => {
+      let u = 0; for (let i = 0; i < 3; i++) u += Math.random();   // ~N(0,1), cheaply
+      return (u - 1.5) * 2;
+    });
+    const s = post.mean.map((m, i) => m + L[i].reduce((a, v, j) => a + v * z[j], 0));
+    samples.push(fitAll(toScale(s)));
+  }
+
+  // The headline number is the MEDIAN of the draws, not fit(posterior mean).
+  // Those differ: the fit function is concave in θ, so by Jensen's inequality
+  // fit(E[θ]) sits above E[fit(θ)] and a point estimate taken that way would
+  // fall outside its own interval. Taking the median keeps the number and the
+  // band on the same footing, and it is the honest estimate under uncertainty.
+  const lo = [], med = [], hi = [], best = new Array(CAREERS.length).fill(0);
+  for (let c = 0; c < CAREERS.length; c++){
+    const col = samples.map(s => s[c]).sort((a, b) => a - b);
+    lo.push(col[Math.floor(draws * 0.10)]);
+    med.push(col[Math.floor(draws * 0.50)]);
+    hi.push(col[Math.floor(draws * 0.90)]);
+  }
+  for (const s of samples) best[s.indexOf(Math.max(...s))]++;
+
+  return {
+    lo, med, hi,
+    pBest: best.map(v => v / draws),
+    // Probability that the true best match is somewhere in a given set. Far more
+    // useful than any single career's win probability, which is necessarily tiny
+    // when there are 80 candidates and the posterior is still wide.
+    pInSet: ids => {
+      const idx = new Set(ids.map(id => CAREERS.findIndex(c => c.id === id)));
+      let hits = 0;
+      for (const s of samples) if (idx.has(s.indexOf(Math.max(...s)))) hits++;
+      return hits / draws;
+    }
+  };
+}
+
+/* Leave-one-out attribution: re-score with one answer reset to neutral and take
+ * the difference. For a single-reference baseline this is the exact contribution
+ * of that answer, and unlike a saliency heuristic it is defined, not estimated. */
+function attribution(answers, careerIdx, limit = 5){
+  const base = fitOne(toScale(posterior(answers).mean), CAREERS[careerIdx].traits).fit;
+  const rows = [];
+  for (const q of QUESTIONS){
+    if (!answers[q.id]) continue;
+    const without = {...answers}; delete without[q.id];
+    const f = fitOne(toScale(posterior(without).mean), CAREERS[careerIdx].traits).fit;
+    rows.push({id: q.id, text: q.text, answer: answers[q.id], delta: base - f});
+  }
+  rows.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  return rows.slice(0, limit);
+}
+
+/* -------------------------------------------------------------- PCA project */
+function project(user){
+  const centred = PROJ.traits.map((t, i) =>
+    (user[TKEYS.indexOf(t)] - 50) * PROJ.col_weight[i] - PROJ.mean[i]);
+  return PROJ.components.map(c => c.reduce((s, v, i) => s + v * centred[i], 0) / PROJ.span);
+}
+
+/* CareerCompiler — interface layer. Depends on app.core.js. */
+
+const $ = id => document.getElementById(id);
+const reduced = !!window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+
+const answers = {};
+let asked = [];          // item indices, in the order the engine chose them
+let slide = 0;
+let slides = [];         // slides[i] = array of item indices
+let stopReady = false;
+
+/* ---------------------------------------------- resumable / shareable state */
+let urlOK = true;
+function saveURL(){
+  if (!urlOK) return;
+  try {
+    // order matters under adaptive selection, so the index is stored with the answer
+    const s = asked.map(i => i.toString(36).padStart(2, "0") + (answers[QUESTIONS[i].id] || 0)).join("");
+    history.replaceState(null, "", "#a=" + s);
+  } catch { urlOK = false; }
+}
+function loadURL(){
+  try {
+    const m = (location.hash || "").match(/#a=([0-9a-z]+)/);
+    if (!m || m[1].length % 3) return false;
+    for (let p = 0; p < m[1].length; p += 3){
+      const idx = parseInt(m[1].slice(p, p + 2), 36);
+      const val = +m[1][p + 2];
+      if (!QUESTIONS[idx] || !val) continue;
+      asked.push(idx);
+      answers[QUESTIONS[idx].id] = val;
+    }
+    return asked.length >= MIN_ITEMS;
+  } catch { return false; }
+}
+
+/* ------------------------------------------------------------ adaptive flow */
+function currentTop(k = 8){
+  const user = toScale(posterior(answers).mean);
+  return fitAll(user)
+    .map((f, i) => [f, i]).sort((a, b) => b[0] - a[0]).slice(0, k)
+    .map(([, i]) => CAREERS[i].id);
+}
+
+function nextSlide(){
+  // The first set is chosen with a flat prior, so it is simply the four most
+  // informative items overall. Every later set is chosen knowing the answers so
+  // far and knowing which traits still separate the leading careers.
+  const post = posterior(answers);
+  const picks = selectBatch(asked, post.cov, currentTop(), PER_SLIDE);
+  slides.push(picks);
+  asked = asked.concat(picks);
+  return picks;
+}
+
+function confidence(){
+  // Mean posterior SE, expressed against the prior. 0% before any answers,
+  // approaching 100% as the traits are pinned down.
+  const sd = posterior(answers).sd;
+  const mean = sd.reduce((a, b) => a + b, 0) / T;
+  return Math.max(0, Math.min(100, Math.round((1 - mean / PRIOR_SD) * 100)));
+}
+
+function stableTop(){
+  if (asked.length < MIN_ITEMS) return false;
+  const now = currentTop(8).join();
+  const prev = stableTop.last;
+  stableTop.last = now;
+  return prev === now;
+}
+
+/* ---------------------------------------------------------------- rendering */
+function scaleHTML(qid){
+  return `<div class="scale" data-q="${qid}">` + SCALE.map((lab, i) => {
+    const cls = i < 3 ? "dis" : i > 3 ? "agr" : "neu";
+    return `<button class="opt ${cls}" data-i="${i}" aria-pressed="${answers[qid] === i + 1}" aria-label="${lab}" title="${lab}"></button>`;
+  }).join("") + `</div>
+  <div class="poles"><span class="d">Disagree</span><span class="a">Agree</span></div>
+  <p class="picked" data-for="${qid}">${answers[qid] ? `<b>${SCALE[answers[qid]-1]}</b>` : "&nbsp;"}</p>`;
+}
+
+function renderSlide(){
+  const items = slides[slide].map(i => QUESTIONS[i]);
+  const offset = slide * PER_SLIDE;
+
+  $("slide").innerHTML = items.map((q, i) => `
+    <div class="q" data-q="${q.id}" id="blk-${q.id}">
+      <span class="num">Statement ${String(offset + i + 1).padStart(2,"0")}</span>
+      <p>${q.text}</p>
+      ${scaleHTML(q.id)}
+    </div>`).join("");
+
+  $("slidelabel").textContent = `Set ${slide + 1} · questions chosen from your answers so far`;
+  $("back").disabled = slide === 0;
+  $("next").textContent = stopReady ? "See results" : "Skip ahead";
+  updateProgress();
+  spotlight(firstUnanswered(items) ?? items[items.length - 1].id, false);
+}
+
+const firstUnanswered = items => (items.find(x => !answers[x.id]) || {}).id ?? null;
+
+function spotlight(qid, scroll = true){
+  document.querySelectorAll(".q").forEach(el => {
+    el.classList.toggle("on", el.dataset.q === qid);
+    el.classList.toggle("answered", el.dataset.q !== qid && !!answers[el.dataset.q]);
+  });
+  if (scroll) scrollToQ($("blk-" + qid));
+}
+
+function scrollToQ(el){
+  if (!el) return;
+  const bar = $("topbar").hidden ? 0 : $("topbar").offsetHeight;
+  const top = el.getBoundingClientRect().top + window.scrollY - bar - 14;
+  window.scrollTo({top: Math.max(0, top), behavior: reduced ? "auto" : "smooth"});
+}
+
+function updateProgress(){
+  const answered = Object.values(answers).filter(Boolean).length;
+  const conf = confidence();
+  // progress tracks measurement, not question count: it is the share of the way
+  // to a usable posterior, which is what actually decides when we can stop
+  const pct = Math.min(100, Math.round(answered / MIN_ITEMS * 100));
+  $("bar").style.width = pct + "%";
+  $("bar").style.minWidth = pct ? "10px" : "0";
+  $("pctv").textContent = pct + "%";
+  $("conf").textContent = conf + "%";
+
+  if (!stopReady && answered >= MIN_ITEMS && stableTop()){
+    stopReady = true;
+    $("next").textContent = "See results";
+    $("stopnote").textContent = "Your top eight has stopped moving — you can stop here, or keep going to tighten it.";
+  }
+}
+
+/* ------------------------------------------------------------- interaction */
+function setPicked(qid, n){
+  const el = document.querySelector(`.picked[data-for="${qid}"]`);
+  if (el) el.innerHTML = n ? `<b>${SCALE[n - 1]}</b>` : "&nbsp;";
+}
+
+function answer(qid, n){
+  answers[qid] = n;
+  const scale = document.querySelector(`.scale[data-q="${qid}"]`);
+  if (scale) scale.querySelectorAll(".opt").forEach(o =>
+    o.setAttribute("aria-pressed", String(+o.dataset.i + 1 === n)));
+  setPicked(qid, n);
+  updateProgress();
+  saveURL();
+
+  const items = slides[slide].map(i => QUESTIONS[i]);
+  const nextQ = firstUnanswered(items);
+  setTimeout(() => {
+    if (nextQ) return spotlight(nextQ);
+    const answered = Object.values(answers).filter(Boolean).length;
+    if (answered >= MAX_ITEMS || (stopReady && answered >= MIN_ITEMS + PER_SLIDE)) return finish();
+    goSlide(slide + 1);
+  }, nextQ ? 240 : 130);
+}
+
+$("slide").addEventListener("click", e => {
+  const b = e.target.closest(".opt");
+  if (b){ answer(b.closest(".scale").dataset.q, +b.dataset.i + 1); return; }
+  const blk = e.target.closest(".q");
+  if (blk && !blk.classList.contains("on")) spotlight(blk.dataset.q);
+});
+["mouseover","focusin"].forEach(ev => $("slide").addEventListener(ev, e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  setPicked(b.closest(".scale").dataset.q, +b.dataset.i + 1);
+}));
+$("slide").addEventListener("mouseout", e => {
+  const b = e.target.closest(".opt"); if (!b) return;
+  const qid = b.closest(".scale").dataset.q;
+  setPicked(qid, answers[qid]);
+});
+document.addEventListener("keydown", e => {
+  if ($("quiz").hidden) return;
+  const on = document.querySelector(".q.on"); if (!on) return;
+  if (e.key >= "1" && e.key <= "7"){ e.preventDefault(); answer(on.dataset.q, +e.key); }
+  else if (e.key === "ArrowLeft" && slide > 0) goSlide(slide - 1, -1);
+  else if (e.key === "ArrowRight" && slide < slides.length - 1) goSlide(slide + 1);
+});
+
+function goSlide(n, dir = 1){
+  const target = Math.max(0, n);
+  if (target >= slides.length) nextSlide();
+  const swap = () => {
+    slide = target;
+    renderSlide();
+    window.scrollTo({top: 0, behavior: "auto"});
+    const el = $("slide");
+    el.className = dir > 0 ? "in-right" : "in-left";
+    requestAnimationFrame(() => requestAnimationFrame(() => el.className = ""));
+  };
+  if (reduced) return swap();
+  $("slide").className = dir > 0 ? "out-left" : "out-right";
+  setTimeout(swap, 200);
+}
+
+$("back").addEventListener("click", () => goSlide(slide - 1, -1));
+$("next").addEventListener("click", () => {
+  const answered = Object.values(answers).filter(Boolean).length;
+  if (stopReady || answered >= MAX_ITEMS) return finish();
+  goSlide(slide + 1);
+});
+$("start").addEventListener("click", () => {
+  $("intro").hidden = true; $("quiz").hidden = false; $("topbar").hidden = false;
+  nextSlide(); renderSlide(); window.scrollTo(0, 0);
+});
+
+/* ------------------------------------------------------------------ results */
+function archetype(user){
+  const val = t => user[TKEYS.indexOf(t)];
+  const nt = RIASEC.reduce((a, b) => Math.abs(val(b) - 50) > Math.abs(val(a) - 50) ? b : a);
+  const qt = WORKSTYLE.reduce((a, b) => Math.abs(val(b) - 50) > Math.abs(val(a) - 50) ? b : a);
+  const spread = user.reduce((s, v) => s + Math.abs(v - 50), 0) / T;
+  return {
+    name: `${ARCH.nouns[nt][val(nt) >= 50 ? "high" : "low"]} ${ARCH.qualifiers[qt][val(qt) >= 50 ? "high" : "low"]}`,
+    nt, qt, ...ARCH.definition.find(b => spread >= b.min)
+  };
+}
+
+function phrase(d){
+  const t = TRAITS[d.trait];
+  const s = d.wants >= 58 ? t.high : d.wants <= 42 ? t.low
+          : `it asks for something middling on ${t.label.toLowerCase()}, which is where you sit`;
+  return s[0].toLowerCase() + s.slice(1).replace(/\.$/, "");
+}
+
+function careerMap(user, topIds){
+  const me = project(user);
+  const R = 190, pad = 16, S = v => pad + (v + 1) / 2 * (R * 2 - pad * 2);
+  const clusterHue = ["#2f8f68","#9c7630","#46587f","#b0603c","#5c7a3f","#7a4a7d"];
+
+  const dots = CAREERS.map((c, i) => {
+    const isTop = topIds.includes(c.id);
+    return `<circle cx="${S(c.xy[0]).toFixed(1)}" cy="${S(-c.xy[1]).toFixed(1)}"
+      r="${isTop ? 6 : 3.2}" fill="${clusterHue[c.cluster]}"
+      opacity="${isTop ? 1 : .3}"><title>${c.title} — ${c.family}</title></circle>`;
+  }).join("");
+
+  const labels = CAREERS.filter(c => topIds.slice(0, 4).includes(c.id)).map(c => {
+    const x = S(c.xy[0]), y = S(-c.xy[1]);
+    const flip = x > R;
+    return `<text x="${(flip ? x - 10 : x + 10).toFixed(1)}" y="${(y + 3.5).toFixed(1)}"
+      text-anchor="${flip ? "end" : "start"}" class="mlab">${c.title}</text>`;
+  }).join("");
+
+  return `<svg viewBox="0 0 ${R*2} ${R*2}" class="map" role="img"
+       aria-label="Map of 80 careers with your position marked">
+    <defs><radialGradient id="you"><stop offset="0" stop-color="#4fe0a4" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#4fe0a4" stop-opacity="0"/></radialGradient></defs>
+    <line x1="${pad}" y1="${R}" x2="${R*2-pad}" y2="${R}" class="axis"/>
+    <line x1="${R}" y1="${pad}" x2="${R}" y2="${R*2-pad}" class="axis"/>
+    ${dots}
+    <circle cx="${S(me[0]).toFixed(1)}" cy="${S(-me[1]).toFixed(1)}" r="34" fill="url(#you)"/>
+    <circle cx="${S(me[0]).toFixed(1)}" cy="${S(-me[1]).toFixed(1)}" r="7"
+      fill="none" stroke="#1d6b4f" stroke-width="2.5"/>
+    ${labels}
+    <text x="${S(me[0]).toFixed(1)}" y="${(S(-me[1]) - 14).toFixed(1)}"
+      text-anchor="middle" class="mlab me">You</text>
+  </svg>`;
+}
+
+function finish(){
+  const answered = Object.values(answers).filter(Boolean).length;
+  const post = posterior(answers);
+  const user = toScale(post.mean);
+  const se = sdToScale(post.sd);
+  const unc = uncertainty(post);
+
+  const rows = CAREERS.map((c, i) => {
+    const {drivers, drags} = fitOne(user, c.traits);
+    const f = unc.med[i];
+    let yes = c.bridge;
+    yes += drivers.length
+      ? ` Your answers fit what it asks for: ${drivers.slice(0,2).map(phrase).join(", and ")}.`
+      : " Nothing in your answers points here strongly, so treat it as a direction to look at rather than a match.";
+    let no = c.friction;
+    for (const d of drags.slice(0,2))
+      no += ` You also came out well ${d.wants > d.you ? "below" : "above"} what this work asks on ${d.label.toLowerCase()} — it sits near ${d.wants} and you're at ${Math.round(d.you)}.`;
+    if (!drags.length) no += " No trait in your profile argues against it, so the honest objection is the practical one above.";
+    return {...c, idx: i, match: display(f), raw: f, yes, no,
+            lo: display(unc.lo[i]), hi: display(unc.hi[i])};
+  }).sort((a, b) => b.raw - a.raw);
+
+  const top = rows[0], rest = rows.slice(1, 8), avoid = rows.slice(-3).reverse();
+  const pTop8 = unc.pInSet(rows.slice(0, 8).map(r => r.id));
+  const tied = rest.filter(r => r.hi >= top.lo);
+  const arch = archetype(user);
+  const drivers = attribution(answers, top.idx);
+
+  $("quiz").hidden = true; $("topbar").hidden = true;
+  const out = $("out"); out.hidden = false;
+
+  out.innerHTML = `
+    <div class="screen">
+      <p class="eyebrow">Closest match</p>
+      <h2>${top.title}</h2>
+      <p class="sub">${top.match}% fit &nbsp;·&nbsp; 80% interval ${top.lo}–${top.hi}</p>
+      <div class="meter"><span data-w="${top.match}"></span></div>
+      ${top.quirk ? `<p class="quirk">${top.quirk}</p>` : ""}
+      <div class="verdict"><h3>Why you could end up here</h3><p>${top.yes}</p></div>
+      <div class="verdict"><h3>Why you might not</h3><p>${top.no}</p></div>
+      <div class="verdict"><h3>How people actually get in</h3><p>${top.entry}</p></div>
+    </div>
+
+    <div class="screen">
+      <p class="eyebrow">You came out as</p>
+      <h2>${arch.name}</h2>
+      <p class="sub">${arch.label} &nbsp;·&nbsp; strongest on ${TRAITS[arch.nt].label.toLowerCase()} and ${TRAITS[arch.qt].label.toLowerCase()}</p>
+      <p class="note">${arch.note}</p>
+    </div>
+
+    <h2 class="section">What drove this</h2>
+    <div class="attrib">
+      <p class="lede">Each answer removed and the match recomputed — this is the measured
+        contribution of that answer to ${top.title}, not a guess at it.</p>
+      ${drivers.map(d => `
+        <div class="arow">
+          <span class="ans ${d.delta >= 0 ? "pos" : "neg"}">${d.delta >= 0 ? "+" : "−"}${Math.abs(d.delta * 100 / (CEIL - FLOOR)).toFixed(1)}</span>
+          <div><p>${d.text}</p><span class="you">You said: ${SCALE[d.answer - 1]}</span></div>
+        </div>`).join("")}
+    </div>
+
+    <h2 class="section">Where you sit</h2>
+    <div class="mapwrap">
+      ${careerMap(user, rows.slice(0, 8).map(r => r.id))}
+      <p class="cap">All 80 careers, projected from 12 trait dimensions to 2 by PCA
+        (${Math.round(PROJ.explained[0]*100)}% + ${Math.round(PROJ.explained[1]*100)}% of variance).
+        Colour is cluster, large dots are your top eight. Neighbours on this map are
+        genuinely similar jobs — worth reading even where the percentage is lower.</p>
+    </div>
+
+    <h2 class="section">Seven more worth a look</h2>
+    <p class="tie">There is a <b>${Math.round(pTop8 * 100)}%</b> probability that your true
+      best match is somewhere in this top eight, given how precisely your traits are
+      currently known.${tied.length ? ` ${tied.length} of the seven below overlap the leader's
+      interval outright — on this many answers the data cannot separate them, so read the
+      top ${tied.length + 1} as a set rather than a ranking.` : ""}</p>
+    ${rest.map(r => `
+      <details class="card">
+        <summary>
+          <div class="row">
+            <div><span class="fam">${r.family}</span><h3>${r.title}</h3></div>
+            <span class="pctv">${r.match}%</span>
+          </div>
+          <p class="blurb">${r.blurb}</p>
+          <div class="bar"><span data-w="${r.match}"></span><i class="ci"
+            style="left:${r.lo}%;width:${Math.max(2, r.hi - r.lo)}%"></i></div>
+          <span class="lamp ${r.retrain}"><i></i>${r.retrain} retraining</span>
+          <span class="ciNote">interval ${r.lo}–${r.hi}</span>
+          <div class="expand">Tap for the full picture</div>
+        </summary>
+        <div class="body">
+          ${r.quirk ? `<h4>The part nobody mentions</h4><p class="qk">${r.quirk}</p>` : ""}
+          <h4>Why you could end up here</h4><p>${r.yes}</p>
+          <h4>Why you might not</h4><p>${r.no}</p>
+          <h4>How people actually get in</h4><p class="route">${r.entry}</p>
+        </div>
+      </details>`).join("")}
+
+    <h2 class="section">Least suited</h2>
+    ${avoid.map(r => `<div class="avoid"><h3>${r.title}</h3><p>${r.no}</p></div>`).join("")}
+
+    <h2 class="section">Your profile</h2>
+    <p class="tie">Each bar shows the posterior mean with its 68% interval. A wide band
+      means that trait rests on few or hedged answers.</p>
+    ${TKEYS.map((id, i) => {
+      const v = user[i], e = se[i], t = TRAITS[id];
+      const desc = v >= 58 ? t.high : v <= 42 ? t.low : "You sit near the middle on this one.";
+      return `<div class="trait">
+        <div class="top"><span class="nm">${t.label}</span><span class="v">${v.toFixed(0)} ±${e.toFixed(0)}</span></div>
+        <div class="rail"><b class="band" data-l="${Math.max(0, v-e)}" data-r="${Math.min(100, v+e)}"></b><i data-l="${v}"></i></div>
+        <p class="desc">${desc}</p>
+      </div>`;
+    }).join("")}
+
+    <div class="caveat"><b>What this is and isn't.</b>
+      You answered ${answered} of ${N} available statements; the rest were skipped because
+      they could no longer change the ranking. Trait estimates are Bayesian posteriors with
+      real error bars, and the intervals above come from ${240} Monte Carlo draws over that
+      posterior. What has <i>not</i> been established is whether these traits predict real
+      career outcomes — the instrument has been validated for internal consistency against
+      simulated respondents, not against people who actually hold these jobs. Treat a high
+      match as a reason to go and talk to somebody doing the work.
+      <div class="actions">
+        <button class="btn ghost" id="again">Start again</button>
+        ${urlOK ? '<button class="btn ghost" id="copy">Copy result link</button>' : ""}
+      </div>
+    </div>`;
+
+  const cards = out.querySelectorAll("details.card");
+  cards.forEach(card => card.addEventListener("toggle", () => {
+    if (!card.open) return;
+    const before = card.getBoundingClientRect().top;
+    cards.forEach(o => { if (o !== card) o.open = false; });
+    const shift = card.getBoundingClientRect().top - before;
+    if (shift) window.scrollBy({top: shift, behavior: "auto"});
+  }));
+
+  $("again").addEventListener("click", () => {
+    try { location.hash = ""; } catch {}
+    location.reload();
+  });
+  const copy = $("copy");
+  if (copy) copy.addEventListener("click", async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(location.href); ok = true; }
+    catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = location.href; ta.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(ta); ta.select();
+        ok = document.execCommand("copy"); ta.remove();
+      } catch {}
+    }
+    copy.textContent = ok ? "Link copied" : "Press Ctrl+C to copy";
+    setTimeout(() => copy.textContent = "Copy result link", 2000);
+  });
+
+  requestAnimationFrame(() => {
+    out.querySelectorAll("[data-w]").forEach(el => {
+      el.style.width = el.dataset.w + "%";
+      el.style.minWidth = +el.dataset.w ? "8px" : "0";
+    });
+    out.querySelectorAll("i[data-l]").forEach(el => el.style.left = el.dataset.l + "%");
+    out.querySelectorAll("b.band").forEach(el => {
+      el.style.left = el.dataset.l + "%";
+      el.style.width = (el.dataset.r - el.dataset.l) + "%";
+    });
+  });
+  window.scrollTo(0, 0);
+}
+
+if (loadURL()){ $("intro").hidden = true; finish(); }
+
+
+/* ---------------------------------------------------- install / offline ---
+ * The app is a single file with no network calls at run time, so "offline" is
+ * the normal case rather than a fallback. Registration is guarded because
+ * service workers need a secure origin — opening index.html straight off the
+ * filesystem still works, it simply cannot install.
+ */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+(() => {
+  const row = document.getElementById("installrow");
+  const btn = document.getElementById("install");
+  const hint = document.getElementById("installhint");
+  const standalone = matchMedia?.("(display-mode: standalone)")?.matches || navigator.standalone;
+  if (standalone) return;
+
+  let deferred = null;
+  addEventListener("beforeinstallprompt", e => {
+    e.preventDefault(); deferred = e;
+    row.hidden = false;
+    hint.textContent = "Adds it to your home screen. Works with no signal afterwards.";
+  });
+
+  btn?.addEventListener("click", async () => {
+    if (!deferred) return;
+    deferred.prompt();
+    const {outcome} = await deferred.userChoice;
+    deferred = null;
+    if (outcome === "accepted") row.hidden = true;
+  });
+
+  // iOS gives no install event, so it needs the manual route spelled out
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iOS) {
+    row.hidden = false;
+    btn.hidden = true;
+    hint.textContent = "To install: tap Share, then Add to Home Screen.";
+  }
+
+  addEventListener("appinstalled", () => { row.hidden = true; });
+})();
+</script>
+</body>
+</html>
